@@ -1,0 +1,7 @@
+import { db } from "@/lib/db";
+import { ProductCard } from "@/components/ProductCard";
+import { isBlocked } from "@/lib/blocked";
+import { safeDatabaseQuery } from "@/lib/db-safe";
+export const dynamic="force-dynamic";
+export const metadata={title:"Oncology portfolio",description:"Trade enquiries for oncology products from licensed importers and institutional buyers.",alternates:{canonical:"/oncology"}};
+export default async function Oncology(){const listed=await safeDatabaseQuery(()=>db.product.findMany({where:{published:true,category:{name:{contains:"oncology",mode:"insensitive"}}},include:{category:true},orderBy:{name:"asc"}}),[]);const products=listed.filter((p)=>!isBlocked(p.name));return <main id="main-content"><section className="page-hero"><div className="container"><span className="eyebrow">For licensed importers</span><h1>Oncology portfolio</h1><p>Enquiries for oncology products are handled with additional care. Availability, destination-market permissions and supporting documents must be confirmed before any supply discussion.</p></div></section><section className="content-section"><div className="container">{products.length?<div className="product-grid">{products.map((p)=><ProductCard key={p.id} product={{name:p.name,slug:p.slug,imageUrl:p.imageUrl,packSize:p.packSize,category:{name:p.category.name}}}/>)}</div>:<div className="empty-state">No oncology products are currently listed. Contact the team with a licensed trade enquiry.</div>}</div></section></main>;}

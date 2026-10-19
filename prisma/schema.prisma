@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+}
+
+model Product {
+  id               Int      @id @default(autoincrement())
+  name             String
+  slug             String   @unique
+  generic          String?
+  strength         String?
+  packSize         String?
+  description      String
+  imageUrl         String?
+  rx               Boolean  @default(true)
+  patentRestricted Boolean  @default(false)
+  published        Boolean  @default(true)
+  categoryId       Int
+  category         Category @relation(fields: [categoryId], references: [id])
+  createdAt        DateTime @default(now())
+}
+
+model Enquiry {
+  id        Int      @id @default(autoincrement())
+  name      String
+  company   String?
+  email     String
+  phone     String?
+  country   String
+  product   String
+  quantity  String
+  licenceNo String?
+  message   String?
+  status    String   @default("new")
+  ip        String?
+  createdAt DateTime @default(now())
+
+  items EnquiryItem[]
+
+  @@index([ip, createdAt])
+}
+
+model EnquiryItem {
+  id        Int      @id @default(autoincrement())
+  enquiryId Int
+  product   String
+  quantity  String
+  enquiry   Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+}
+
+model Subscriber {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model BlogPost {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique
+  title     String
+  category  String
+  excerpt   String
+  content   String
+  imageUrl  String?
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
