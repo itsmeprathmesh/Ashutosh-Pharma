@@ -59,7 +59,34 @@ button, input, textarea, select { font: inherit; }
 .business-profile-card span { color: var(--muted); font-size: 13px; }
 .business-profile-card strong { color: var(--navy); font-size: 16px; }
 .about-copy { margin-top: 48px; }
+.about-content { display: grid; gap: 56px; }
+.about-intro { max-width: 900px; }
+.factsheet-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--background); }
+.factsheet-item { display: grid; grid-template-columns: minmax(150px, .7fr) 1fr; gap: 18px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+.factsheet-item:nth-child(odd) { border-right: 1px solid var(--line); }
+.factsheet-item dt { color: var(--muted); }
+.factsheet-item dd { margin: 0; color: var(--foreground); font-weight: 650; }
+.facility-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.facility-card { overflow: hidden; margin: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--background); }
+.facility-image { position: relative; aspect-ratio: 4 / 3; background: var(--sand); }
+.facility-image img { object-fit: cover; }
+.facility-card figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 16px; }
+.facility-card figcaption span { color: var(--muted); }
+.rating-summary { display: grid; grid-template-columns: .8fr 1.2fr; gap: 32px; align-items: center; padding: 28px; border: 1px solid var(--line); border-radius: 16px; background: var(--background); }
+.rating-score { display: grid; grid-template-columns: auto auto; align-items: baseline; justify-content: start; gap: 6px; }
+.rating-score strong { color: var(--navy); font-size: 52px; line-height: 1; }
+.rating-score span { color: var(--muted); }
+.rating-score div, .rating-score small { grid-column: 1 / -1; }
+.rating-score div { color: #e5a900; font-size: 24px; letter-spacing: 3px; }
+.rating-score small { color: var(--muted); }
+.satisfaction-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.satisfaction-grid div { display: grid; justify-items: center; gap: 7px; }
+.satisfaction-grid strong { display: grid; width: 88px; height: 88px; place-items: center; border: 7px solid #e6bf35; border-radius: 50%; font-size: 20px; }
+.satisfaction-grid span { color: var(--muted); font-size: 14px; }
+.about-contact { padding: 30px; border-radius: 18px; background: var(--sand); }
+.about-contact p { margin-bottom: 20px; }
 @media (max-width: 760px) { .business-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .brand-logo { width: min(210px, 44vw); } }
+@media (max-width: 700px) { .facility-grid { grid-template-columns: 1fr; } .factsheet-grid { grid-template-columns: 1fr; } .factsheet-item:nth-child(odd) { border-right: 0; } .rating-summary { grid-template-columns: 1fr; } }
 .brand-mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 14px 14px 14px 4px; background: var(--teal-dark); color: white; font-family: Georgia, serif; font-size: 25px; }
 .brand-copy { display: grid; gap: 3px; }
 .brand-copy strong { color: var(--navy); font-family: Georgia, serif; font-size: 17px; letter-spacing: -.02em; }
