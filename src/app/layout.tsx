@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PublicHeader, FloatingWhatsApp } from "@/components/PublicHeader";
 import { site } from "@/config/site";
@@ -33,6 +34,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-KB7PJB2EG9"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];\nfunction gtag(){window.dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', 'G-KB7PJB2EG9');`}
+        </Script>
         <PublicHeader />
         {children}
         <SiteFooter />
