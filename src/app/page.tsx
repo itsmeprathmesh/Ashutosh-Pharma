@@ -8,20 +8,29 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import Image from "next/image";
 import { isBlocked } from "@/lib/blocked";
+import { getStaticCategories, getStaticProducts } from "@/lib/catalog-fallback";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const data = process.env.DATABASE_URL
     ? await Promise.all([
-      db.product.findMany({ where: { published: true }, include: { category: true }, orderBy: { name: "asc" } }),
-      db.product.findMany({ where: { published: true }, include: { category: true }, orderBy: { createdAt: "desc" } }),
-      db.category.findMany({ orderBy: { name: "asc" }, include: { _count: { select: { products: { where: { published: true } } } } } }),
+      db.product.findMany({ where: { published: true, status: "active" }, include: { category: true }, orderBy: { name: "asc" } }),
+      db.product.findMany({ where: { published: true, status: "active" }, include: { category: true }, orderBy: { createdAt: "desc" } }),
+      db.category.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { published: true, status: "active" } } } } } }),
       db.blogPost.findMany({ where: { published: true }, orderBy: { createdAt: "desc" }, take: 3 }),
     ]).catch(() => null)
     : null;
-  const [trending, arrivals, categories, posts] = data ?? [[], [], [], []];
-  const products = (list: typeof trending) => list.filter((p) => !isBlocked(p.name)).slice(0, 8).map((p): CatalogProduct => ({ name: p.name, slug: p.slug, imageUrl: p.imageUrl, packSize: p.packSize, description: p.description, category: { name: p.category.name, slug: p.category.slug } }));
+  const [dbTrending, dbArrivals, dbCategories, posts] = data ?? [[], [], [], []];
+  const fallbackProducts = getStaticProducts();
+  const mergeProducts = (primary: typeof dbTrending, fallback: typeof fallbackProducts) => {
+    const bySlug = new Map([...fallback, ...primary].map((product) => [product.slug, product]));
+    return [...bySlug.values()];
+  };
+  const trending = mergeProducts(dbTrending, fallbackProducts).sort((a, b) => a.name.localeCompare(b.name));
+  const arrivals = mergeProducts(dbArrivals, fallbackProducts);
+  const categories = dbCategories.length ? dbCategories : getStaticCategories();
+  const products = (list: typeof trending) => list.filter((p) => !isBlocked(`${p.name} ${p.generic ?? ""} ${p.description}`)).slice(0, 8).map((p): CatalogProduct => ({ name: p.name, slug: p.slug, imageUrl: p.imageUrl, packSize: p.packSize, description: p.description, rx: p.rx, category: { name: p.category.name, slug: p.category.slug } }));
   const certDir = join(process.cwd(), "public", "certs");
   const certificates = existsSync(certDir) ? readdirSync(certDir).filter((name) => /\.(png|jpe?g|webp|svg)$/i.test(name)) : [];
   return <main id="main-content">

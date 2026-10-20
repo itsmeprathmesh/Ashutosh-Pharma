@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "5.imimg.com" },
     ],
   },
   async headers() {
@@ -12,7 +13,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       `script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+      "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://5.imimg.com",
       "font-src 'self' data:",
       `connect-src 'self' https://*.public.blob.vercel-storage.com${development ? " ws: wss:" : ""}`,
       "object-src 'none'",

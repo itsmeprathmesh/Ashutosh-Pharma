@@ -33,6 +33,7 @@ export async function POST(request: Request) {
   const parsed = enquirySchema.safeParse(input);
   if (!parsed.success) return NextResponse.json({ error: "Invalid enquiry details" }, { status: 400 });
   const { website, productSlug, items, files, general, ...data } = parsed.data;
+  void general;
   if (website) return NextResponse.json({ error: "Invalid enquiry details" }, { status: 400 });
 
   if (!data.name || !data.email || (!items.length && !data.product) || isBlocked(data.product) || (items.length > 0 && items.some((item) => isBlocked(item.product)))) {
@@ -40,21 +41,21 @@ export async function POST(request: Request) {
   }
 
   const catalogueItems = items.length ? await Promise.all(items.map(async (item) => {
-    const productRecord = await db.product.findFirst({ where: { name: item.product, published: true }, select: { name: true, rx: true } });
+    const productRecord = await db.product.findFirst({ where: { name: item.product, published: true, status: "active" }, select: { name: true, rx: true } });
     return { ...item, record: productRecord };
   })) : [];
   if (catalogueItems.some(({ record }) => !record)) return NextResponse.json({ error: "One or more products are unavailable" }, { status: 400 });
 
   const product = productSlug
-    ? await db.product.findUnique({ where: { slug: productSlug }, select: { name: true, rx: true, published: true } })
+    ? await db.product.findUnique({ where: { slug: productSlug }, select: { id: true, name: true, rx: true, published: true, status: true, generic: true, description: true } })
     : null;
-  if (productSlug && (!product || !product.published || product.name !== data.product)) {
+  if (productSlug && (!product || !product.published || product.status !== "active" || product.name !== data.product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`))) {
     return NextResponse.json({ error: "Product is unavailable" }, { status: 400 });
   }
   const requiresLicence = items.length > 0
     ? catalogueItems.some(({ record }) => record?.rx)
-    : productSlug ? (product?.rx ?? true) : true;
-  if (!general && requiresLicence && !data.licenceNo) {
+    : productSlug ? (product?.rx ?? true) : false;
+  if (requiresLicence && !data.licenceNo) {
     return NextResponse.json({ error: "An importer licence number is required for prescription products" }, { status: 400 });
   }
 
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
   const quantitySummary = items.length ? `${items.length} products` : data.quantity;
   const enquiry = await db.enquiry.create({ data: {
     ...data, product: productSummary || "General trade enquiry", quantity: quantitySummary || "Not provided",
+    ...(productSlug && product ? { productId: product.id } : {}),
     message: [data.message, files.length ? `Documents: ${files.join(", ")}` : ""].filter(Boolean).join("\n").slice(0, 3000),
     ip,
     ...(items.length ? { items: { create: items } } : {}),

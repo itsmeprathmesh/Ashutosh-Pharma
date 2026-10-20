@@ -7,6 +7,7 @@ import slugify from "slugify";
 import { db } from "@/lib/db";
 import { isBlocked } from "@/lib/blocked";
 import { isAdminAuthorized } from "@/lib/admin-auth";
+import { revalidatePath } from "next/cache";
 
 const productSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -75,8 +76,11 @@ export async function saveProduct(formData: FormData) {
     categoryId: category.id,
   };
 
-  if (item.id) await db.product.update({ where: { id: item.id }, data });
-  else await db.product.create({ data });
+  if (item.id) {
+    const current = await db.product.findUnique({ where: { id: item.id }, select: { status: true } });
+    if (current?.status === "review" && item.published) redirect("/admin/products?error=review");
+    await db.product.update({ where: { id: item.id }, data });
+  } else await db.product.create({ data });
   redirect("/admin/products?saved=1");
 }
 
@@ -118,3 +122,22 @@ export async function updateEnquiryStatus(formData: FormData) {
   await db.enquiry.update({ where: { id }, data: { status } });
   redirect("/admin/enquiries?saved=1");
 }
+
+async function reviewProduct(formData: FormData, approve: boolean) {
+  const id = Number(text(formData, "id"));
+  const authorization = (await headers()).get("authorization");
+  if (!Number.isInteger(id) || id < 1 || !isAdminAuthorized(authorization)) redirect("/admin/products?error=invalid");
+  const actor = authorization?.startsWith("Basic ")
+    ? Buffer.from(authorization.slice(6), "base64").toString("utf8").split(":", 1)[0]
+    : "admin";
+  await db.$transaction(async (tx) => {
+    await tx.product.update({ where: { id }, data: approve ? { status: "active", published: true, statusNote: null } : { status: "review", published: false } });
+    await tx.productAudit.create({ data: { productId: id, action: approve ? "approved" : "kept_hidden", actor: actor || "admin" } });
+  });
+  revalidatePath("/shop");
+  revalidatePath("/");
+  redirect(`/admin/products?view=review&${approve ? "approved=1" : "hidden=1"}`);
+}
+
+export async function approveReviewProduct(formData: FormData) { await reviewProduct(formData, true); }
+export async function keepReviewProductHidden(formData: FormData) { await reviewProduct(formData, false); }
