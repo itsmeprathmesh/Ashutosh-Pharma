@@ -52,6 +52,14 @@ button, input, textarea, select { font: inherit; }
 .site-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--background) 92%, transparent); backdrop-filter: blur(14px); }
 .header-inner { display: flex; min-height: 78px; align-items: center; justify-content: space-between; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 11px; }
+.brand-logo { display: block; width: min(260px, 28vw); height: auto; padding: 3px 5px; border-radius: 5px; background: #fff; object-fit: contain; }
+.business-profile-band { padding: 56px 0; background: var(--surface); }
+.business-profile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.business-profile-card { display: grid; min-height: 108px; align-content: center; gap: 9px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--background); }
+.business-profile-card span { color: var(--muted); font-size: 13px; }
+.business-profile-card strong { color: var(--navy); font-size: 16px; }
+.about-copy { margin-top: 48px; }
+@media (max-width: 760px) { .business-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .brand-logo { width: min(210px, 44vw); } }
 .brand-mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 14px 14px 14px 4px; background: var(--teal-dark); color: white; font-family: Georgia, serif; font-size: 25px; }
 .brand-copy { display: grid; gap: 3px; }
 .brand-copy strong { color: var(--navy); font-family: Georgia, serif; font-size: 17px; letter-spacing: -.02em; }
