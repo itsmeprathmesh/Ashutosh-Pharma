@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
   description: site.description,
   alternates: { canonical: "/" },
-  icons: { icon: "/ashutosh-pharma-favicon.svg", shortcut: "/ashutosh-pharma-favicon.svg" },
+  icons: { icon: "/ashutosh-pharma-icon.png", shortcut: "/ashutosh-pharma-icon.png" },
   openGraph: {
     type: "website",
     locale: "en_IN",
