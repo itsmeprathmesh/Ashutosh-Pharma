@@ -52,7 +52,7 @@ button, input, textarea, select { font: inherit; }
 .site-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--background) 92%, transparent); backdrop-filter: blur(14px); }
 .header-inner { display: flex; min-height: 78px; align-items: center; justify-content: space-between; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 11px; }
-.brand-logo { display: block; width: 120px; height: 101px; padding: 2px; border-radius: 5px; background: #fff; object-fit: contain; }
+.brand-logo { display: block; width: 210px; height: 60px; object-fit: contain; }
 .business-profile-band { padding: 56px 0; background: var(--surface); }
 .business-profile-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .business-profile-card { display: grid; min-height: 108px; align-content: center; gap: 9px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--background); }
@@ -85,7 +85,7 @@ button, input, textarea, select { font: inherit; }
 .satisfaction-grid span { color: var(--muted); font-size: 14px; }
 .about-contact { padding: 30px; border-radius: 18px; background: var(--sand); }
 .about-contact p { margin-bottom: 20px; }
-@media (max-width: 760px) { .business-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .brand-logo { width: 120px; height: 101px; } }
+@media (max-width: 760px) { .business-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .brand-logo { width: 155px; height: 44px; } }
 @media (max-width: 700px) { .facility-grid { grid-template-columns: 1fr; } .factsheet-grid { grid-template-columns: 1fr; } .factsheet-item:nth-child(odd) { border-right: 0; } .rating-summary { grid-template-columns: 1fr; } }
 .brand-mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 14px 14px 14px 4px; background: var(--teal-dark); color: white; font-family: Georgia, serif; font-size: 25px; }
 .brand-copy { display: grid; gap: 3px; }
@@ -366,7 +366,7 @@ button, input, textarea, select { font: inherit; }
 @media (max-width: 680px) {
  .header-main { grid-template-columns: auto 1fr auto; min-height: 68px; padding-block: 8px; }
  .site-header.is-scrolled .header-main { min-height:68px; }
- .brand-logo { width: 64px; height: 54px; padding: 1px; }
+ .brand-logo { width: 155px; height: 44px; }
  .mobile-menu { display: inline-grid !important; grid-column: 1; grid-row: 1; }
  .header-main > .brand { grid-column: 2; grid-row: 1; }
  .header-actions { grid-column: 3; grid-row: 1; }
