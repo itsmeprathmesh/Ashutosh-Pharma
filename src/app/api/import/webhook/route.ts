@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { fetchSheet, importRows } from "@/lib/import";
 
@@ -16,6 +16,7 @@ export async function POST(request: Request) {
   if (!sheetUrl) return NextResponse.json({ error: "SHEET_URL is not configured" }, { status: 503 });
   try {
     const result = await importRows(await fetchSheet(sheetUrl));
+    revalidateTag("public-catalog");
     revalidatePath("/", "layout");
     return NextResponse.json(result);
   } catch (error) {

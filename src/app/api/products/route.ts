@@ -16,5 +16,8 @@ export async function GET(request: Request) {
   const products = dbProducts.length ? dbProducts : getStaticProducts()
     .filter((product) => product.name.toLowerCase().includes(q.toLowerCase()) && (!category || product.category.slug === category))
     .slice(0, 8);
-  return NextResponse.json({ products: products.filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)).map(({ name, slug, imageUrl, category }) => ({ name, slug, imageUrl, category })) });
+  return NextResponse.json(
+    { products: products.filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)).map(({ name, slug, imageUrl, category }) => ({ name, slug, imageUrl, category })) },
+    { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },
+  );
 }

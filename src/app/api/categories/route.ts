@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getPublicCategories } from "@/lib/public-data";
 import { safeDatabaseQuery } from "@/lib/db-safe";
 import { getStaticCategories } from "@/lib/catalog-fallback";
 export async function GET() {
-  const listed = await safeDatabaseQuery(() => db.category.findMany({ where: { products: { some: { published: true, status: "active" } } }, orderBy: { sortOrder: "asc" }, select: { name: true, slug: true } }), []);
+  const listed = await safeDatabaseQuery(() => getPublicCategories(), []);
   const categories = listed.length ? listed : getStaticCategories().map(({ name, slug }) => ({ name, slug }));
-  return NextResponse.json({ categories });
+  return NextResponse.json({ categories }, { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } });
 }

@@ -7,7 +7,14 @@ import slugify from "slugify";
 import { db } from "@/lib/db";
 import { isBlocked } from "@/lib/blocked";
 import { isAdminAuthorized } from "@/lib/admin-auth";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+function invalidatePublicData() {
+  revalidateTag("public-catalog");
+  revalidateTag("public-blog");
+  revalidatePath("/");
+  revalidatePath("/shop");
+}
 
 const productSchema = z.object({
   id: z.coerce.number().int().positive().optional(),
@@ -81,6 +88,7 @@ export async function saveProduct(formData: FormData) {
     if (current?.status === "review" && item.published) redirect("/admin/products?error=review");
     await db.product.update({ where: { id: item.id }, data });
   } else await db.product.create({ data });
+  invalidatePublicData();
   redirect("/admin/products?saved=1");
 }
 
@@ -88,6 +96,7 @@ export async function deleteProduct(formData: FormData) {
   const id = Number(text(formData, "id"));
   if (!Number.isInteger(id) || id < 1) redirect("/admin/products?error=invalid");
   await db.product.delete({ where: { id } });
+  invalidatePublicData();
   redirect("/admin/products?deleted=1");
 }
 
@@ -110,6 +119,7 @@ export async function attachUploadedImage(filename: string, imageUrl: string) {
   const product = await db.product.findUnique({ where: { slug }, select: { id: true } });
   if (!product) return { matched: false, error: "No product matches this filename." };
   await db.product.update({ where: { id: product.id }, data: { imageUrl } });
+  invalidatePublicData();
   return { matched: true };
 }
 
@@ -136,6 +146,7 @@ async function reviewProduct(formData: FormData, approve: boolean) {
   });
   revalidatePath("/shop");
   revalidatePath("/");
+  revalidateTag("public-catalog");
   redirect(`/admin/products?view=review&${approve ? "approved=1" : "hidden=1"}`);
 }
 

@@ -44,6 +44,11 @@ model Product {
   createdAt        DateTime @default(now())
   enquiries        Enquiry[]
   audits           ProductAudit[]
+
+  @@index([published, status, name])
+  @@index([published, status, createdAt])
+  @@index([categoryId, published, status, name])
+  @@index([categoryId, published, status, createdAt])
 }
 
 model Enquiry {
@@ -66,6 +71,8 @@ model Enquiry {
   items EnquiryItem[]
 
   @@index([ip, createdAt])
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model ProductAudit {
@@ -103,4 +110,6 @@ model BlogPost {
   imageUrl  String?
   published Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([published, createdAt])
 }

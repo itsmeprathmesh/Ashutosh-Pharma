@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { isBlocked } from "@/lib/blocked";
+import { readJsonBody } from "@/lib/request-body";
 
 const enquirySchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -23,14 +24,10 @@ const enquirySchema = z.object({
 
 export async function POST(request: Request) {
   if (!process.env.DATABASE_URL) return NextResponse.json({ error: "Enquiry service is not configured yet. Please contact us on WhatsApp." }, { status: 503 });
-  let input: unknown;
-  try {
-    input = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const body = await readJsonBody(request, 32 * 1024);
+  if (!body.ok) return NextResponse.json({ error: body.status === 413 ? "Enquiry request is too large" : "Invalid JSON body" }, { status: body.status });
 
-  const parsed = enquirySchema.safeParse(input);
+  const parsed = enquirySchema.safeParse(body.value);
   if (!parsed.success) return NextResponse.json({ error: "Invalid enquiry details" }, { status: 400 });
   const { website, productSlug, items, files, general, ...data } = parsed.data;
   void general;
@@ -40,15 +37,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Please provide valid trade enquiry details" }, { status: 400 });
   }
 
-  const catalogueItems = items.length ? await Promise.all(items.map(async (item) => {
-    const productRecord = await db.product.findFirst({ where: { name: item.product, published: true, status: "active" }, select: { name: true, rx: true } });
-    return { ...item, record: productRecord };
-  })) : [];
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
+  const ip = forwarded || request.headers.get("x-real-ip") || "unknown";
+  const since = new Date(Date.now() - 60 * 60 * 1000);
+  let recentCount: number;
+  try {
+    recentCount = await db.enquiry.count({ where: { ip, createdAt: { gte: since } } });
+  } catch {
+    return NextResponse.json({ error: "Enquiry service is temporarily unavailable" }, { status: 503 });
+  }
+  if (recentCount >= 5) return NextResponse.json({ error: "Too many enquiries. Please try again later." }, { status: 429 });
+
+  let catalogueItems: { product: string; quantity: string; record: { name: string; rx: boolean } | null }[];
+  let product: { id: number; name: string; rx: boolean; published: boolean; status: string; generic: string | null; description: string } | null;
+  try {
+    const requestedNames = [...new Set(items.map((item) => item.product))];
+    const productRecords = requestedNames.length ? await db.product.findMany({ where: { name: { in: requestedNames }, published: true, status: "active" }, select: { name: true, rx: true } }) : [];
+    const productsByName = new Map(productRecords.map((record) => [record.name, record]));
+    catalogueItems = items.map((item) => ({ ...item, record: productsByName.get(item.product) ?? null }));
+    product = productSlug
+      ? await db.product.findUnique({ where: { slug: productSlug }, select: { id: true, name: true, rx: true, published: true, status: true, generic: true, description: true } })
+      : null;
+  } catch {
+    return NextResponse.json({ error: "Enquiry service is temporarily unavailable" }, { status: 503 });
+  }
   if (catalogueItems.some(({ record }) => !record)) return NextResponse.json({ error: "One or more products are unavailable" }, { status: 400 });
 
-  const product = productSlug
-    ? await db.product.findUnique({ where: { slug: productSlug }, select: { id: true, name: true, rx: true, published: true, status: true, generic: true, description: true } })
-    : null;
   if (productSlug && (!product || !product.published || product.status !== "active" || product.name !== data.product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`))) {
     return NextResponse.json({ error: "Product is unavailable" }, { status: 400 });
   }
@@ -59,21 +73,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "An importer licence number is required for prescription products" }, { status: 400 });
   }
 
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
-  const ip = request.headers.get("x-real-ip") ?? forwarded ?? "unknown";
-  const since = new Date(Date.now() - 60 * 60 * 1000);
-  const recentCount = await db.enquiry.count({ where: { ip, createdAt: { gte: since } } });
-  if (recentCount >= 5) return NextResponse.json({ error: "Too many enquiries. Please try again later." }, { status: 429 });
-
   const productSummary = items.length ? items.map((item) => `${item.product} (${item.quantity})`).join(", ").slice(0, 200) : data.product;
   const quantitySummary = items.length ? `${items.length} products` : data.quantity;
-  const enquiry = await db.enquiry.create({ data: {
-    ...data, product: productSummary || "General trade enquiry", quantity: quantitySummary || "Not provided",
-    ...(productSlug && product ? { productId: product.id } : {}),
-    message: [data.message, files.length ? `Documents: ${files.join(", ")}` : ""].filter(Boolean).join("\n").slice(0, 3000),
-    ip,
-    ...(items.length ? { items: { create: items } } : {}),
-  } });
+  let enquiry: { id: number };
+  try {
+    enquiry = await db.enquiry.create({ data: {
+      ...data, product: productSummary || "General trade enquiry", quantity: quantitySummary || "Not provided",
+      ...(productSlug && product ? { productId: product.id } : {}),
+      message: [data.message, files.length ? `Documents: ${files.join(", ")}` : ""].filter(Boolean).join("\n").slice(0, 3000),
+      ip,
+      ...(items.length ? { items: { create: items } } : {}),
+    } });
+  } catch {
+    return NextResponse.json({ error: "Unable to save this enquiry right now" }, { status: 503 });
+  }
 
   if (process.env.RESEND_API_KEY && process.env.RESEND_FROM && process.env.OWNER_EMAIL) {
     try {
@@ -84,7 +97,7 @@ export async function POST(request: Request) {
         to: process.env.OWNER_EMAIL,
         subject: `New trade enquiry: ${data.product} (${data.country})`,
         text: lines,
-      });
+      }, { signal: AbortSignal.timeout(8_000) });
     } catch (error) {
       console.error("Enquiry saved, but Resend email failed", error);
     }

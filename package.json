@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
+    "test:load": "k6 run tests/load/public.js",
+    "test:load:smoke": "node scripts/load-smoke.mjs",
     "check": "npm run lint && npm run typecheck && npm run build && npm run test:unit && npm run test:e2e",
     "db:migrate:test": "node scripts/test-db-guard.mjs prisma migrate deploy",
     "db:seed:test": "node scripts/test-db-guard.mjs tsx prisma/seed.ts",

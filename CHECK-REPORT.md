@@ -65,3 +65,39 @@ Audit date: 2026-10-19. This report distinguishes checks run locally from checks
 ## Lighthouse scores
 
 Not measured. No before/after scores are available; Lighthouse was not run in this pass.
+
+## 2026-10-25 production-readiness follow-up
+
+This follow-up reviewed the performance/reliability changes in the working tree. It did not use the values in `.env.local` to connect to a database or service.
+
+### Priority findings
+
+| Priority | Finding and impact | Smallest practical next step |
+|---|---|---|
+| P0 before public launch | Business, regulatory, legal, catalogue, and country-page content still needs client and qualified regulatory review, as listed above. Incorrect claims or products could create regulatory and commercial risk. | Complete the client-review checklist with source documents; preserve the shared controlled-product filter and Rx licence requirement. |
+| P1 before production rollout | Seven additive PostgreSQL indexes are in the new migration but have not been applied or measured against a populated database. Production query plans, table sizes, and Neon connection limits are unknown. | Rehearse the migration on a staging clone, inspect `EXPLAIN (ANALYZE, BUFFERS)` for the actual catalogue/enquiry queries, then schedule deployment with a current backup and monitor index build/DB load. |
+| P1 before production rollout | Vercel and Neon environment configuration, backups/PITR, alerts, and integration delivery are not verifiable from this checkout. | Confirm pooled runtime URL, direct migration URL, function timeouts, Neon pool limits, backup retention, and alerts in the provider consoles; run staging enquiry/email/upload flows. |
+| P2 | The enquiry throttle uses a database count before insert. Concurrent requests can race the five-per-hour limit, and the configured Vercel forwarded-IP behavior has not been exercised in a deployed request. | Verify the observed IP header in staging and, if abuse risk warrants a strict ceiling, serialize the per-IP count/insert or use a platform rate-limit feature backed by shared storage. |
+| P2 | Dependency advisory status could not be refreshed because the npm registry audit endpoint was unreachable. | Rerun `npm audit --omit=dev --audit-level=high` from an environment with registry access and review compatible fixes before upgrading frameworks. |
+
+### Changes in this follow-up
+
+- Added short-lived shared caching for public catalogue/blog reads, bounded catalogue page sizes, and invalidation hooks after admin/import changes.
+- Added query indexes, bounded request-body parsing, safer DB failure responses, DB-backed enquiry throttling, bounded Resend wait, and an app liveness endpoint.
+- Added local-only k6 and Node smoke-load scenarios. The smoke runner refuses non-local hosts; tests should still use a test-only app configuration.
+- Added `.env.example` with placeholders only and updated setup/deployment guidance. `.env.local` remains ignored and was not added to Git.
+
+### Verification evidence from this follow-up
+
+- `npm run typecheck`: passed.
+- `npm run test:unit`: 28 tests passed across 3 files.
+- `npm run db:validate`: passed with dummy loopback connection strings; no database connection or migration was made.
+- ESLint on `src/app` and `src/lib`: passed. A full-root ESLint invocation was slow to initialize in this Windows workspace; the scoped source lint completed successfully.
+- `npm run build`: passed; Next.js compiled and generated 36 routes with database access disabled and dummy loopback URLs.
+- Local production-server smoke load: 5 workers for 15.1 seconds, 229 requests, 15.16 requests/second, 0 errors, all HTTP 200; aggregate p50 202 ms, p95 850 ms, p99 1,337 ms. Runner RSS was 72.8 MiB. Home p95 was 929 ms and shop p95 was 850 ms. This is a small local, database-disabled smoke run, not a capacity benchmark or a prediction of Vercel/Neon performance.
+- `npm audit` did not return advisory data because the registry endpoint was unreachable.
+- Playwright previously printed 24 passing desktop/mobile cases but did not exit cleanly; its aggregate exit status remains unconfirmed. A test database and provider credentials were not available for database-backed/admin/integration tests.
+
+### Deployment status
+
+The audit changes remain in the local working tree and are not committed or pushed. No production database migration, production load test, Vercel deployment, or provider-console change was performed. Do not describe the service as production-ready until staging migration/integration checks, dependency review, and the P0 client review are complete.

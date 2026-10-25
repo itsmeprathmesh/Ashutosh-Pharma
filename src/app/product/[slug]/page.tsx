@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { EnquiryForm } from "@/components/EnquiryForm";
-import { db } from "@/lib/db";
+import { getPublicProduct } from "@/lib/public-data";
 import { isBlocked } from "@/lib/blocked";
 import { SingleEnquiryButton } from "@/components/SingleEnquiryButton";
 import { AddProductButton } from "@/components/ProductCard";
@@ -33,7 +33,7 @@ function isSafeExternalLink(source: string) {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await safeDatabaseQuery(() => db.product.findUnique({ where: { slug } }), null) ?? findStaticProduct(slug);
+  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null) ?? findStaticProduct(slug);
   if (!product || !product.published || product.status !== "active" || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) return {};
   return {
     title: product.name,
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await safeDatabaseQuery(() => db.product.findUnique({ where: { slug }, include: { category: true } }), null) ?? findStaticProduct(slug);
+  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null) ?? findStaticProduct(slug);
   if (!product || !product.published || product.status !== "active" || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) notFound();
 
   const structuredData = {

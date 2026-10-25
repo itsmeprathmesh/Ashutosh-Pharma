@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { manufacturers } from "@/data/manufacturers";
 import { EnquiryForm } from "@/components/EnquiryForm";
 import { HeroCarousel, MetricCounters, ProductRow } from "@/components/HomeSections";
@@ -9,17 +8,13 @@ import { join } from "node:path";
 import Image from "next/image";
 import { isBlocked } from "@/lib/blocked";
 import { getStaticCategories, getStaticProducts } from "@/lib/catalog-fallback";
+import { getHomeData } from "@/lib/public-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const data = process.env.DATABASE_URL
-    ? await Promise.all([
-      db.product.findMany({ where: { published: true, status: "active" }, include: { category: true }, orderBy: { name: "asc" } }),
-      db.product.findMany({ where: { published: true, status: "active" }, include: { category: true }, orderBy: { createdAt: "desc" } }),
-      db.category.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { published: true, status: "active" } } } } } }),
-      db.blogPost.findMany({ where: { published: true }, orderBy: { createdAt: "desc" }, take: 3 }),
-    ]).catch(() => null)
+  const data = process.env.DATABASE_URL && process.env.TEST_DATABASE_ENABLED !== "false"
+    ? await getHomeData().catch(() => null)
     : null;
   const [dbTrending, dbArrivals, dbCategories, posts] = data ?? [[], [], [], []];
   const fallbackProducts = getStaticProducts();
