@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PublicHeader, FloatingWhatsApp } from "@/components/PublicHeader";
 import { site } from "@/config/site";
@@ -45,6 +46,7 @@ export default function RootLayout({
         {children}
         <SiteFooter />
         <FloatingWhatsApp />
+        <SpeedInsights />
       </body>
     </html>
   );
