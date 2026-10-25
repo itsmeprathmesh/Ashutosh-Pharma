@@ -351,6 +351,48 @@ button, input, textarea, select { font: inherit; }
 .shop-sidebar a:hover,.shop-sidebar .active-filter { background: var(--sand); color: var(--teal-dark); }
 .pagination { display: flex; justify-content: center; align-items: center; gap: 18px; margin: 26px auto; color: var(--muted); font-size: 12px; }
 .pagination a { color: var(--teal-dark); font-weight: 700; }
+.bulk-inquiry-dialog { width: min(660px,calc(100vw - 28px)); max-height: min(92vh,760px); overflow: visible; padding: 0; border: 1px solid #d7d7d7; border-radius: 3px; background: #fff; color: #242424; box-shadow: 0 18px 60px #0003; }
+.bulk-inquiry-header { position: relative; display: flex; min-height: 52px; align-items: center; justify-content: center; padding: 8px 48px; border-bottom: 1px solid #ececec; }
+.bulk-inquiry-header h2 { margin: 0; color: #242424; font: 700 23px/1.2 Arial,sans-serif; text-align: center; }
+.bulk-inquiry-close { position: absolute; top: 50%; right: 14px; display: grid; width: 30px; height: 30px; place-items: center; transform: translateY(-50%); border: 0; border-radius: 50%; background: transparent; color: #2d2d2d; cursor: pointer; }
+.bulk-inquiry-close:hover { background: #f0f0f0; }
+.bulk-inquiry-close:focus-visible,.bulk-inquiry-add:focus-visible,.bulk-inquiry-remove:focus-visible,.bulk-inquiry-submit:focus-visible { outline: 3px solid #e2ae30; outline-offset: 2px; }
+.bulk-inquiry-form { display: grid; gap: 18px; padding: 14px 15px 18px; }
+.bulk-inquiry-field { width: 100%; min-width: 0; min-height: 38px; padding: 8px 14px; border: 1px solid #d6d8db; border-radius: 8px; outline: 0; background: #fff; color: #262626; font: 14px/1.3 Arial,sans-serif; }
+.bulk-inquiry-field::placeholder { color: #89939f; opacity: 1; }
+.bulk-inquiry-field:focus { border-color: #96a7b2; box-shadow: 0 0 0 2px #597c8b1a; }
+.bulk-inquiry-products { display: grid; gap: 7px; margin-top: 31px; }
+.bulk-inquiry-labels,.bulk-inquiry-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 54px; align-items: center; gap: 15px; }
+.bulk-inquiry-labels { color: #5b5b5b; font: 700 14px Arial,sans-serif; }
+.bulk-inquiry-labels b,.bulk-inquiry-licence b { margin-left: 3px; color: #ed4545; }
+.bulk-inquiry-search { position: relative; min-width: 0; }
+.bulk-inquiry-suggestions { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; width: 100%; max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; border: 1px solid #d7e1de; border-radius: 8px; background: #fff; box-shadow: 0 8px 24px #102d3b20; list-style: none; }
+.bulk-inquiry-suggestions li { margin: 0; }
+.bulk-inquiry-suggestions button { display: grid; width: 100%; gap: 3px; padding: 9px; border: 0; border-radius: 5px; background: transparent; color: #263b40; text-align: left; cursor: pointer; }
+.bulk-inquiry-suggestions button:hover,.bulk-inquiry-suggestions button:focus-visible { outline: 0; background: #edf5f2; }
+.bulk-inquiry-suggestions small { color: #718180; font-size: 10px; }
+.bulk-inquiry-row .bulk-inquiry-field { min-height: 37px; padding: 7px 12px; }
+.bulk-inquiry-add,.bulk-inquiry-remove { display: grid; width: 28px; height: 28px; place-items: center; justify-self: center; border: 0; border-radius: 50%; background: #050505; color: #fff; cursor: pointer; }
+.bulk-inquiry-add:disabled { opacity: .4; cursor: not-allowed; }
+.bulk-inquiry-remove { background: #e9eceb; color: #36494b; }
+.bulk-inquiry-licence { display: grid; gap: 7px; color: #555; font-size: 12px; font-weight: 700; }
+.bulk-inquiry-honeypot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+.bulk-inquiry-submit { justify-self: center; min-width: 151px; min-height: 37px; margin-top: 1px; padding: 0 20px; border: 0; background: #050505; color: #fff; font: 700 13px Arial,sans-serif; cursor: pointer; }
+.bulk-inquiry-submit:hover:not(:disabled) { background: #263c3e; }
+.bulk-inquiry-submit:disabled { opacity: .65; cursor: wait; }
+.bulk-inquiry-status { min-height: 0; margin: -9px 0 0; color: #4d6862; font-size: 11px; text-align: center; }
+.bulk-inquiry-status:empty { display: none; }
+@media (max-width: 540px) {
+ .bulk-inquiry-header { min-height: 49px; }
+ .bulk-inquiry-header h2 { font-size: 19px; }
+ .bulk-inquiry-form { gap: 13px; padding: 13px 12px 16px; }
+ .bulk-inquiry-products { margin-top: 20px; }
+ .bulk-inquiry-labels,.bulk-inquiry-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 30px; gap: 7px; }
+ .bulk-inquiry-labels { font-size: 11px; }
+ .bulk-inquiry-field { min-height: 39px; padding-inline: 10px; font-size: 12px; }
+ .bulk-inquiry-row .bulk-inquiry-field { padding-inline: 9px; font-size: 11px; }
+ .bulk-inquiry-add,.bulk-inquiry-remove { width: 25px; height: 25px; }
+}
 
 /* Ashutosh Pharma administrator sign-in */
 body:has(.admin-login-page) { background: #f1f5f2; }
