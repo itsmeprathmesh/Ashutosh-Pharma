@@ -100,4 +100,4 @@ This follow-up reviewed the performance/reliability changes in the working tree.
 
 ### Deployment status
 
-The audit changes remain in the local working tree and are not committed or pushed. No production database migration, production load test, Vercel deployment, or provider-console change was performed. Do not describe the service as production-ready until staging migration/integration checks, dependency review, and the P0 client review are complete.
+The audit changes were committed and pushed to GitHub `main` as `962f3ff`. No production database migration, production load test, or provider-console change was performed. A GitHub push may trigger an automatically connected deployment; check Vercel's deployment status and logs. Do not describe the service as production-ready until staging migration/integration checks, dependency review, and the P0 client review are complete.
