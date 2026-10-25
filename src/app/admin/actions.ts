@@ -101,7 +101,7 @@ export async function deleteProduct(formData: FormData) {
 }
 
 export async function attachUploadedImage(filename: string, imageUrl: string) {
-  if (!isAdminAuthorized((await headers()).get("authorization"))) {
+  if (!await isAdminAuthorized((await headers()).get("cookie"))) {
     return { matched: false, error: "Authentication required." };
   }
   let url: URL;
@@ -135,11 +135,8 @@ export async function updateEnquiryStatus(formData: FormData) {
 
 async function reviewProduct(formData: FormData, approve: boolean) {
   const id = Number(text(formData, "id"));
-  const authorization = (await headers()).get("authorization");
-  if (!Number.isInteger(id) || id < 1 || !isAdminAuthorized(authorization)) redirect("/admin/products?error=invalid");
-  const actor = authorization?.startsWith("Basic ")
-    ? Buffer.from(authorization.slice(6), "base64").toString("utf8").split(":", 1)[0]
-    : "admin";
+  if (!Number.isInteger(id) || id < 1 || !await isAdminAuthorized((await headers()).get("cookie"))) redirect("/admin/products?error=invalid");
+  const actor = process.env.ADMIN_USER || "admin";
   await db.$transaction(async (tx) => {
     await tx.product.update({ where: { id }, data: approve ? { status: "active", published: true, statusNote: null } : { status: "review", published: false } });
     await tx.productAudit.create({ data: { productId: id, action: approve ? "approved" : "kept_hidden", actor: actor || "admin" } });

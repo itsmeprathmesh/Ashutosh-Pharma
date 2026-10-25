@@ -100,6 +100,15 @@ model Subscriber {
   createdAt DateTime @default(now())
 }
 
+model AdminLoginAttempt {
+  id        Int      @id @default(autoincrement())
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@index([ipHash, createdAt])
+  @@index([createdAt])
+}
+
 model BlogPost {
   id        Int      @id @default(autoincrement())
   slug      String   @unique

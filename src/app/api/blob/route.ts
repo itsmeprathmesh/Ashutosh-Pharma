@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
   const action = (body as { type?: string }).type;
   if (action === "blob.generate-client-token") {
-    if (!isAdminAuthorized(request.headers.get("authorization"))) {
+    if (!await isAdminAuthorized(request.headers.get("cookie"))) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
     const origin = request.headers.get("origin");

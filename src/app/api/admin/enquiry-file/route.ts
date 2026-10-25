@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { isAdminAuthorized } from "@/lib/admin-auth";
 
 export async function GET(request: Request) {
-  if (!isAdminAuthorized(request.headers.get("authorization"))) return new NextResponse("Unauthorized", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="Ashutosh Pharma Admin"' } });
+  if (!await isAdminAuthorized(request.headers.get("cookie"))) return new NextResponse("Unauthorized", { status: 401, headers: { "Cache-Control": "no-store" } });
   const url = new URL(request.url).searchParams.get("url");
   if (!url) return new NextResponse("Missing document", { status: 400 });
   let parsed: URL;

@@ -13,7 +13,7 @@ The `npm run build` command generates the Prisma client and builds Next.js. It d
 
 ## Product and enquiry administration
 
-- `/admin` is protected by HTTP Basic Authentication. Use a long random `ADMIN_PASS` and deploy with HTTPS.
+- `/admin` has a branded sign-in page and uses `ADMIN_USER`, `ADMIN_PASS`, and an HTTP-only signed session cookie. Set a unique `ADMIN_SESSION_SECRET` (at least 32 random characters) in deployment settings and deploy with HTTPS. Failed sign-in attempts are stored in PostgreSQL; apply migrations before deploying this sign-in update.
 - `/admin/products` supports product edits and publication controls. Saves run the shared controlled-product filter.
 - `/admin/import` previews and imports CSV, XLSX, and JSON files, or a Google Sheet shared as view-only. The import API is limited to 4 MB per request; image files upload directly to a configured public Vercel Blob store.
 - Product images should be named with the product slug, such as `tenofovir-disoproxil-fumarate-tablets.jpg`.
