@@ -6,6 +6,11 @@ const issuer = ["https://accounts.google.com", "accounts.google.com"];
 const googleKeys = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
 
 export const GOOGLE_OAUTH_TTL_SECONDS = 10 * 60;
+export const GOOGLE_HANDOFF_TTL_SECONDS = 90;
+
+export function googleHandoffCookieName() {
+  return "ashutosh-google-handoff";
+}
 
 export function googleOAuthCookieName() {
   return process.env.NODE_ENV === "production" ? "__Host-ashutosh-google-oauth" : "ashutosh-google-oauth";
@@ -65,6 +70,31 @@ export async function openGoogleOAuthTransaction(token: string) {
   const { payload, protectedHeader } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
   if (protectedHeader.typ !== "JWT" || typeof payload.state !== "string" || typeof payload.nonce !== "string" || typeof payload.verifier !== "string" || typeof payload.next !== "string") throw new Error("Invalid Google sign-in transaction");
   return payload as typeof payload & GoogleOAuthTransaction;
+}
+
+export async function sealGoogleSessionHandoff(email: string, next: string) {
+  return new SignJWT({ kind: "google-session-handoff", next: safeAdminNext(next) })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+    .setIssuer("ashutosh-pharma-admin")
+    .setAudience("ashutosh-admin-google-complete")
+    .setSubject(email.toLowerCase())
+    .setIssuedAt()
+    .setExpirationTime(`${GOOGLE_HANDOFF_TTL_SECONDS}s`)
+    .setJti(randomBytes(24).toString("base64url"))
+    .sign(sessionKey());
+}
+
+export async function openGoogleSessionHandoff(token: string) {
+  const { payload, protectedHeader } = await jwtVerify(token, sessionKey(), {
+    algorithms: ["HS256"],
+    issuer: "ashutosh-pharma-admin",
+    audience: "ashutosh-admin-google-complete",
+  });
+  const email = typeof payload.sub === "string" ? payload.sub.toLowerCase() : "";
+  if (protectedHeader.typ !== "JWT" || payload.kind !== "google-session-handoff" || !email || typeof payload.next !== "string" || !adminEmails().has(email)) {
+    throw new Error("Invalid Google session handoff");
+  }
+  return { email, next: safeAdminNext(payload.next) };
 }
 
 export function secureStringEqual(left: string, right: string) {
