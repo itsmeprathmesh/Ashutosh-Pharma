@@ -5,6 +5,8 @@ import { sameOrigin } from "@/lib/auth";
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return NextResponse.json({ error: "Request rejected." }, { status: 403 });
   const response = NextResponse.redirect(new URL("/admin/login?signedOut=1", request.url), 303);
-  response.cookies.set(ADMIN_SESSION_COOKIE, "", { ...adminCookieOptionsForHost(new URL(request.url).hostname), maxAge: 0, expires: new Date(0) });
+  const cookieOptions = adminCookieOptionsForHost(new URL(request.url).hostname);
+  response.cookies.set(ADMIN_SESSION_COOKIE, "", { httpOnly: true, secure: cookieOptions.secure, sameSite: "strict", path: "/", maxAge: 0, expires: new Date(0) });
+  if (cookieOptions.domain) response.cookies.set(ADMIN_SESSION_COOKIE, "", { ...cookieOptions, maxAge: 0, expires: new Date(0) });
   return response;
 }

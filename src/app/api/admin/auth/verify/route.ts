@@ -48,7 +48,9 @@ export async function POST(request: Request) {
     });
     if (!verifiedEmail) return fail();
     const response = NextResponse.json({ ok: true, next: input.data.next?.startsWith("/admin/") && !input.data.next.startsWith("//") ? input.data.next : "/admin" }, { headers: { "Cache-Control": "no-store" } });
-    response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSession(verifiedEmail), { ...adminCookieOptionsForHost(new URL(request.url).hostname), expires: new Date(Date.now() + ADMIN_SESSION_SECONDS * 1000) });
+    const cookieOptions = adminCookieOptionsForHost(new URL(request.url).hostname);
+    if (cookieOptions.domain) response.cookies.set(ADMIN_SESSION_COOKIE, "", { httpOnly: true, secure: true, sameSite: "strict", path: "/", maxAge: 0, expires: new Date(0) });
+    response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSession(verifiedEmail), { ...cookieOptions, expires: new Date(Date.now() + ADMIN_SESSION_SECONDS * 1000) });
     return response;
   } catch {
     return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });

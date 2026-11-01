@@ -71,8 +71,10 @@ export async function GET(request: NextRequest) {
 
     const email = await verifyGoogleIdentity(tokenPayload.data.id_token, config.clientId, transaction.nonce);
     const response = loginSuccess(request, transaction.next);
+    const cookieOptions = adminCookieOptionsForHost(request.nextUrl.hostname);
+    if (cookieOptions.domain) response.cookies.set(ADMIN_SESSION_COOKIE, "", { httpOnly: true, secure: true, sameSite: "strict", path: "/", maxAge: 0, expires: new Date(0) });
     response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSession(email), {
-      ...adminCookieOptionsForHost(request.nextUrl.hostname),
+      ...cookieOptions,
       expires: new Date(Date.now() + ADMIN_SESSION_SECONDS * 1000),
     });
     response.cookies.set(googleOAuthCookieName(), "", {
