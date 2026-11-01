@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_SECONDS, adminCookieOptions, createAdminSession } from "@/lib/auth-session";
+import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_SECONDS, adminCookieOptionsForHost, createAdminSession } from "@/lib/auth-session";
 import {
   googleOAuthConfig,
   googleOAuthCookieName,
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     const email = await verifyGoogleIdentity(tokenPayload.data.id_token, config.clientId, transaction.nonce);
     const response = loginSuccess(request, transaction.next);
     response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSession(email), {
-      ...adminCookieOptions,
+      ...adminCookieOptionsForHost(request.nextUrl.hostname),
       expires: new Date(Date.now() + ADMIN_SESSION_SECONDS * 1000),
     });
     response.cookies.set(googleOAuthCookieName(), "", {

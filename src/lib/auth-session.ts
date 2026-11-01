@@ -35,3 +35,12 @@ export async function verifyAdminSession(token?: string | null) {
 }
 
 export const adminCookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" as const, path: "/", maxAge: ADMIN_SESSION_SECONDS };
+
+/** Share the production admin session between the apex and www host. OAuth may
+ * return through www while a bookmarked admin URL uses the apex (or vice versa).
+ * Keep preview deployments host-only so their unrelated Vercel domains work. */
+export function adminCookieOptionsForHost(hostname: string) {
+  const host = hostname.toLowerCase().replace(/\.$/, "");
+  const sharesProductionDomain = host === "ashutoshpharmaa.com" || host === "www.ashutoshpharmaa.com";
+  return { ...adminCookieOptions, ...(sharesProductionDomain ? { domain: ".ashutoshpharmaa.com" } : {}) };
+}

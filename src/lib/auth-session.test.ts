@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ADMIN_SESSION_SECONDS, adminCookieOptions, createAdminSession, verifyAdminSession } from "@/lib/auth-session";
+import { ADMIN_SESSION_SECONDS, adminCookieOptions, adminCookieOptionsForHost, createAdminSession, verifyAdminSession } from "@/lib/auth-session";
 
 describe("admin sessions", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -12,6 +12,12 @@ describe("admin sessions", () => {
     expect(ADMIN_SESSION_SECONDS).toBe(8 * 60 * 60);
   });
   it("sets the required cookie security flags", () => {
-    expect(adminCookieOptions).toMatchObject({ httpOnly: true, secure: true, sameSite: "strict", path: "/", maxAge: 28_800 });
+    expect(adminCookieOptions).toMatchObject({ httpOnly: true, sameSite: "strict", path: "/", maxAge: 28_800 });
+    expect(adminCookieOptions.secure).toBe(process.env.NODE_ENV === "production");
+  });
+  it("shares production sessions across the apex and www hosts, but not previews", () => {
+    expect(adminCookieOptionsForHost("www.ashutoshpharmaa.com").domain).toBe(".ashutoshpharmaa.com");
+    expect(adminCookieOptionsForHost("ashutoshpharmaa.com").domain).toBe(".ashutoshpharmaa.com");
+    expect(adminCookieOptionsForHost("ashutosh-pharma-git-branch.vercel.app").domain).toBeUndefined();
   });
 });

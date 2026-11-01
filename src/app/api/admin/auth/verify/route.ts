@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_SECONDS, adminCookieOptions, adminEmails, createAdminSession } from "@/lib/auth-session";
+import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_SECONDS, adminCookieOptionsForHost, adminEmails, createAdminSession } from "@/lib/auth-session";
 import { sameOrigin } from "@/lib/auth";
 import { ADMIN_LOGIN_MAX_FAILURES, ADMIN_LOGIN_WINDOW_MS, adminCodeIsUsable } from "@/lib/auth-policy";
 import { readJsonBody } from "@/lib/request-body";
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     });
     if (!verifiedEmail) return fail();
     const response = NextResponse.json({ ok: true, next: input.data.next?.startsWith("/admin/") && !input.data.next.startsWith("//") ? input.data.next : "/admin" }, { headers: { "Cache-Control": "no-store" } });
-    response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSession(verifiedEmail), { ...adminCookieOptions, expires: new Date(Date.now() + ADMIN_SESSION_SECONDS * 1000) });
+    response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSession(verifiedEmail), { ...adminCookieOptionsForHost(new URL(request.url).hostname), expires: new Date(Date.now() + ADMIN_SESSION_SECONDS * 1000) });
     return response;
   } catch {
     return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
