@@ -73,5 +73,10 @@
       }
     },
     "minimatch": "^11.0.1"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.10.1": true,
+    "esbuild@0.28.2": true,
+    "prisma@7.10.1": true
   }
 }
