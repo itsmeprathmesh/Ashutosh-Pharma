@@ -4,8 +4,14 @@ import { jwtVerify } from "jose/jwt/verify";
 export const ADMIN_SESSION_COOKIE = "ashutosh_admin_session";
 export const ADMIN_SESSION_SECONDS = 8 * 60 * 60;
 
+function envValue(value: string | undefined, name: string) {
+  let normalized = (value ?? "").trim().replace(new RegExp(`^${name}\\s*=`, "i"), "").trim();
+  if ((normalized.startsWith("\"") && normalized.endsWith("\"")) || (normalized.startsWith("'") && normalized.endsWith("'"))) normalized = normalized.slice(1, -1).trim();
+  return normalized;
+}
+
 export function adminEmails() {
-  return new Set((process.env.ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean));
+  return new Set(envValue(process.env.ADMIN_EMAILS, "ADMIN_EMAILS").split(",").map((email) => envValue(email, "").toLowerCase()).filter(Boolean));
 }
 
 function key() {

@@ -18,6 +18,12 @@ const digest = (value: string) => createHmac("sha256", secret()).update(value).d
 function clientIp(request: Request) { return (request.headers.get("x-vercel-forwarded-for") ?? request.headers.get("x-real-ip") ?? "unknown").split(",")[0].trim().slice(0, 128); }
 function safeNext(value?: string) { return value?.startsWith("/admin/") && !value.startsWith("//") && !value.startsWith("/admin/login") ? value : "/admin"; }
 const pause = (start: number) => new Promise((resolve) => setTimeout(resolve, Math.max(0, 650 - (Date.now() - start))));
+function configuredPasswordHash() {
+  let encoded = (process.env.ADMIN_PASSWORD_HASH_B64 ?? "").trim().replace(/^ADMIN_PASSWORD_HASH_B64\s*=/i, "").trim();
+  if ((encoded.startsWith("\"") && encoded.endsWith("\"")) || (encoded.startsWith("'") && encoded.endsWith("'"))) encoded = encoded.slice(1, -1).trim();
+  const candidate = Buffer.from(encoded, "base64").toString("utf8");
+  return /^\$2[aby]\$\d\d\$/.test(candidate) ? candidate : "";
+}
 
 export async function POST(request: Request) {
   const start = Date.now();
@@ -45,11 +51,11 @@ export async function POST(request: Request) {
     }
     await pause(start); return fail();
   }
-  if (secret().length < 32 || !process.env.ADMIN_PASSWORD_HASH_B64) { await pause(start); return fail(); }
+  if (secret().length < 32) { await pause(start); return fail(); }
   const email = input.data.email.trim().toLowerCase();
   const emailAllowed = adminEmails().has(email);
   let hash = dummyBcrypt;
-  try { const candidate = Buffer.from(process.env.ADMIN_PASSWORD_HASH_B64, "base64").toString("utf8"); if (/^\$2[aby]\$\d\d\$/.test(candidate)) hash = candidate; } catch { /* use fixed dummy */ }
+  try { hash = configuredPasswordHash() || dummyBcrypt; } catch { /* use fixed dummy */ }
   const passwordValid = await bcrypt.compare(input.data.password, hash).catch(() => false);
   const ipHash = digest(clientIp(request)), emailHash = digest(email);
   const now = new Date(), since = new Date(now.getTime() - ADMIN_LOGIN_WINDOW_MS);
