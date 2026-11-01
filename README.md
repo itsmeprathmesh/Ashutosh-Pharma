@@ -1,6 +1,6 @@
 # Ashutosh Pharma website
 
-B2B pharmaceutical export enquiry website for licensed importers, hospitals, and distributors. The site uses Next.js 15, PostgreSQL, Prisma 6, Resend, and Vercel Blob.
+B2B pharmaceutical export enquiry website for licensed importers, hospitals, and distributors. The site uses Next.js 16, PostgreSQL, Prisma 7, Resend, and Vercel Blob.
 
 ## Local setup
 
@@ -13,7 +13,7 @@ The `npm run build` command generates the Prisma client and builds Next.js. It d
 
 ## Product and enquiry administration
 
-- `/admin` uses an email allowlist, a bcrypt password, and an emailed one-time code. Generate values with `node scripts/make-admin-secrets.mjs`; configure `ADMIN_EMAILS`, `ADMIN_PASSWORD_HASH_B64`, `SESSION_SECRET`, `RESEND_API_KEY`, and `AUTH_FROM_EMAIL`. Apply the Prisma migration before deployment. The import watcher uses the scoped `IMPORT_API_TOKEN`.
+- `/admin` accepts a Google sign-in from an email on `ADMIN_EMAILS`, or a bcrypt password plus an emailed one-time code. Generate/reset the password hash with `npm run admin:secrets`; configure `ADMIN_EMAILS`, `ADMIN_PASSWORD_HASH_B64`, `SESSION_SECRET`, `RESEND_API_KEY`, and `AUTH_FROM_EMAIL`. To enable Google, create a Web OAuth client and set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the exact `GOOGLE_REDIRECT_URI` listed in `.env.example`. Google accounts must also be on the admin email allowlist. Apply Prisma migrations before deployment. The import watcher uses the scoped `IMPORT_API_TOKEN`.
 - `/admin/products` supports product edits and publication controls. Saves run the shared controlled-product filter.
 - `/admin/import` previews and imports CSV, XLSX, and JSON files, or a Google Sheet shared as view-only. The import API is limited to 4 MB per request; image files upload directly to a configured public Vercel Blob store.
 - Product images should be named with the product slug, such as `tenofovir-disoproxil-fumarate-tablets.jpg`.

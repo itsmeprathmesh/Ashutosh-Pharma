@@ -28,4 +28,4 @@ export async function verifyAdminSession(token?: string | null) {
   } catch { return null; }
 }
 
-export const adminCookieOptions = { httpOnly: true, secure: true, sameSite: "strict" as const, path: "/", maxAge: ADMIN_SESSION_SECONDS };
+export const adminCookieOptions = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "strict" as const, path: "/", maxAge: ADMIN_SESSION_SECONDS };

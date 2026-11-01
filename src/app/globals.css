@@ -415,6 +415,12 @@ body:has(.admin-login-page) .admin-session-toolbar { display: none; }
 .admin-login-kicker svg { color: #149d96; }
 .admin-login-heading h1 { margin: 0 0 9px; color: #17344b; font: 600 clamp(30px,4vw,38px)/1.15 var(--font-display); letter-spacing: -.035em; }
 .admin-login-heading > p { margin: 0; color: #6b7e81; font-size: 13px; line-height: 1.7; }
+.admin-google-button { display: flex; min-height: 48px; align-items: center; justify-content: center; gap: 11px; border: 1px solid #d6dfdc; border-radius: 10px; background: #fff; color: #263b42; font-size: 12px; font-weight: 750; text-decoration: none; transition: background .18s,border-color .18s,box-shadow .18s; }
+.admin-google-button:hover { border-color: #aabbb5; background: #f8faf9; box-shadow: 0 3px 9px #17344b10; }
+.admin-google-button:focus-visible { outline: 3px solid #e9ae3f; outline-offset: 3px; }
+.admin-google-button svg { width: 19px; height: 19px; flex: 0 0 auto; }
+.admin-login-divider { display: flex; align-items: center; gap: 12px; margin: 3px 0; color: #91a09e; font-size: 10px; }
+.admin-login-divider::before,.admin-login-divider::after { height: 1px; flex: 1; background: #e8eeeb; content: ""; }
 .admin-login-form { display: grid; gap: 10px; }
 .admin-login-form > label { margin-top: 8px; color: #27454c; font-size: 11px; font-weight: 750; }
 .admin-login-input-wrap { display: flex; min-height: 52px; align-items: center; gap: 12px; padding: 0 15px; border: 1px solid #d9e4df; border-radius: 10px; background: #f8faf9; color: #758a8a; transition: border-color .18s,box-shadow .18s,background .18s; }
