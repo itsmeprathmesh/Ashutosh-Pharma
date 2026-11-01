@@ -3,7 +3,9 @@ import { check, sleep } from "k6";
 
 const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:3100";
 if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(baseUrl)) {
-  throw new Error("This load test is restricted to localhost. Do not point it at production.");
+  throw new Error(
+    "This load test is restricted to localhost. Do not point it at production.",
+  );
 }
 
 export const options = {
@@ -26,11 +28,22 @@ export const options = {
   },
 };
 
-const routes = ["/", "/shop", "/about", "/api/categories", "/api/products?q=paracetamol"];
+const routes = [
+  "/",
+  "/shop",
+  "/about",
+  "/api/categories",
+  "/api/products?q=paracetamol",
+];
 
 export default function publicBrowsing() {
   const path = routes[Math.floor(Math.random() * routes.length)];
-  const response = http.get(`${baseUrl}${path}`, { tags: { route: path.split("?")[0] } });
-  check(response, { "status is successful": (result) => result.status >= 200 && result.status < 400 });
+  const response = http.get(`${baseUrl}${path}`, {
+    tags: { route: path.split("?")[0] },
+  });
+  check(response, {
+    "status is successful": (result) =>
+      result.status >= 200 && result.status < 400,
+  });
   sleep(1);
 }

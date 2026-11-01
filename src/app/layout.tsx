@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { headers } from "next/headers";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PublicHeader, FloatingWhatsApp } from "@/components/PublicHeader";
@@ -27,19 +28,21 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: `${site.name} | Pharmaceutical Exports`, description: site.description },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en">
       <body className="antialiased">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-KB7PJB2EG9"
           strategy="afterInteractive"
+          nonce={nonce}
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="afterInteractive" nonce={nonce}>
           {`window.dataLayer = window.dataLayer || [];\nfunction gtag(){window.dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', 'G-KB7PJB2EG9');`}
         </Script>
         <PublicHeader />

@@ -115,10 +115,7 @@ function ProductSearchInput({ index, row, onProductText, onSelect }: {
   const listId = `bulk-inquiry-suggestions-${index}`;
 
   useEffect(() => {
-    if (row.product.trim().length < 2 || row.slug) {
-      setSuggestions([]);
-      return;
-    }
+    if (row.product.trim().length < 2 || row.slug) return;
     let active = true;
     const timer = setTimeout(() => {
       fetch(`/api/products?q=${encodeURIComponent(row.product.trim())}`)
@@ -164,13 +161,13 @@ function ProductSearchInput({ index, row, onProductText, onSelect }: {
       role="combobox"
       aria-controls={listId}
       aria-autocomplete="list"
-      aria-expanded={open && suggestions.length > 0}
+      aria-expanded={open && row.product.trim().length >= 2 && !row.slug && suggestions.length > 0}
       aria-activedescendant={open && suggestions.length ? `bulk-inquiry-option-${index}-${activeIndex}` : undefined}
       autoComplete="off"
       maxLength={200}
       required
     />
-    {open && suggestions.length > 0 && <div className="bulk-inquiry-suggestions" id={listId} role="listbox" aria-label="Product suggestions">
+    {open && row.product.trim().length >= 2 && !row.slug && suggestions.length > 0 && <div className="bulk-inquiry-suggestions" id={listId} role="listbox" aria-label="Product suggestions">
       {suggestions.map((product, optionIndex) => <button type="button" role="option" id={`bulk-inquiry-option-${index}-${optionIndex}`} aria-selected={activeIndex === optionIndex} key={product.slug} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(optionIndex)} onClick={() => { onSelect(product); setSuggestions([]); setOpen(false); }}>
         <span>{product.name}</span><small>{product.category.name}{product.rx ? " · Prescription" : ""}</small>
       </button>)}

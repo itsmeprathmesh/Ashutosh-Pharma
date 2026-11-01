@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { updateEnquiryStatus } from "@/app/admin/actions";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 type PageProps = { searchParams: Promise<{ status?: string; country?: string }> };
 
 export default async function EnquiriesPage({ searchParams }: PageProps) {
+  await requireAdmin(true);
   const filters = await searchParams;
   const rows = await db.enquiry.findMany({
     where: {

@@ -12,9 +12,13 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
+/src/generated/prisma/
+/.prisma-cache/
 /out/
 
 # production

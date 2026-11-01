@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminHome() {
+  await requireAdmin(true);
   const [products, enquiries, newEnquiries, latest] = await Promise.all([
     db.product.count(),
     db.enquiry.count(),

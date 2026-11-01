@@ -1,17 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { z } from "zod";
 import slugify from "slugify";
 import { db } from "@/lib/db";
 import { isBlocked } from "@/lib/blocked";
-import { isAdminAuthorized } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/auth";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 function invalidatePublicData() {
-  revalidateTag("public-catalog");
-  revalidateTag("public-blog");
+  revalidateTag("public-catalog", "max");
+  revalidateTag("public-blog", "max");
   revalidatePath("/");
   revalidatePath("/shop");
 }
@@ -43,6 +42,7 @@ function checked(formData: FormData, key: string) {
 }
 
 export async function saveProduct(formData: FormData) {
+  await requireAdmin(true);
   const parsed = productSchema.safeParse({
     id: text(formData, "id") || undefined,
     name: text(formData, "name"),
@@ -93,6 +93,7 @@ export async function saveProduct(formData: FormData) {
 }
 
 export async function deleteProduct(formData: FormData) {
+  await requireAdmin(true);
   const id = Number(text(formData, "id"));
   if (!Number.isInteger(id) || id < 1) redirect("/admin/products?error=invalid");
   await db.product.delete({ where: { id } });
@@ -101,16 +102,14 @@ export async function deleteProduct(formData: FormData) {
 }
 
 export async function attachUploadedImage(filename: string, imageUrl: string) {
-  if (!await isAdminAuthorized((await headers()).get("cookie"))) {
-    return { matched: false, error: "Authentication required." };
-  }
+  await requireAdmin(true);
   let url: URL;
   try {
     url = new URL(imageUrl);
   } catch {
     return { matched: false, error: "Invalid image URL." };
   }
-  if (url.protocol !== "https:" || !url.hostname.endsWith(".public.blob.vercel-storage.com")) {
+  if (url.protocol !== "https:" || url.username || url.password || url.port || !url.hostname.endsWith(".public.blob.vercel-storage.com")) {
     return { matched: false, error: "Only approved public Blob image URLs can be attached." };
   }
   const baseName = filename.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") ?? "";
@@ -124,6 +123,7 @@ export async function attachUploadedImage(filename: string, imageUrl: string) {
 }
 
 export async function updateEnquiryStatus(formData: FormData) {
+  await requireAdmin(true);
   const id = Number(text(formData, "id"));
   const status = text(formData, "status");
   if (!Number.isInteger(id) || id < 1 || !["new", "contacted", "closed"].includes(status)) {
@@ -134,18 +134,19 @@ export async function updateEnquiryStatus(formData: FormData) {
 }
 
 async function reviewProduct(formData: FormData, approve: boolean) {
+  const actor = await requireAdmin(true);
+  if (!actor) redirect("/admin/login");
   const id = Number(text(formData, "id"));
-  if (!Number.isInteger(id) || id < 1 || !await isAdminAuthorized((await headers()).get("cookie"))) redirect("/admin/products?error=invalid");
-  const actor = process.env.ADMIN_USER || "admin";
+  if (!Number.isInteger(id) || id < 1) redirect("/admin/products?error=invalid");
   await db.$transaction(async (tx) => {
     await tx.product.update({ where: { id }, data: approve ? { status: "active", published: true, statusNote: null } : { status: "review", published: false } });
-    await tx.productAudit.create({ data: { productId: id, action: approve ? "approved" : "kept_hidden", actor: actor || "admin" } });
+    await tx.productAudit.create({ data: { productId: id, action: approve ? "approved" : "kept_hidden", actor } });
   });
   revalidatePath("/shop");
   revalidatePath("/");
-  revalidateTag("public-catalog");
+  revalidateTag("public-catalog", "max");
   redirect(`/admin/products?view=review&${approve ? "approved=1" : "hidden=1"}`);
 }
 
-export async function approveReviewProduct(formData: FormData) { await reviewProduct(formData, true); }
-export async function keepReviewProductHidden(formData: FormData) { await reviewProduct(formData, false); }
+export async function approveReviewProduct(formData: FormData) { await requireAdmin(true); await reviewProduct(formData, true); }
+export async function keepReviewProductHidden(formData: FormData) { await requireAdmin(true); await reviewProduct(formData, false); }

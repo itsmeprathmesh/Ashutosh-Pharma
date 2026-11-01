@@ -8,7 +8,8 @@ import { SingleEnquiryButton } from "@/components/SingleEnquiryButton";
 import { AddProductButton } from "@/components/ProductCard";
 import { site } from "@/config/site";
 import { safeDatabaseQuery } from "@/lib/db-safe";
-import { findStaticProduct } from "@/lib/catalog-fallback";
+import { headers } from "next/headers";
+import { jsonForHtml } from "@/lib/json-safe";
 
 export const dynamic = "force-dynamic";
 type PageProps = { params: Promise<{ slug: string }> };
@@ -33,8 +34,8 @@ function isSafeExternalLink(source: string) {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null) ?? findStaticProduct(slug);
-  if (!product || !product.published || product.status !== "active" || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) return {};
+  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null);
+  if (!product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) return {};
   return {
     title: product.name,
     description: product.description.slice(0, 155),
@@ -44,29 +45,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ProductPage({ params }: PageProps) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const { slug } = await params;
-  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null) ?? findStaticProduct(slug);
-  if (!product || !product.published || product.status !== "active" || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) notFound();
+  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null);
+  if (!product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) notFound();
+  const imageUrl = product.images[0] ?? product.imageUrl;
 
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     description: product.description,
-    image: product.imageUrl,
+    image: imageUrl,
     category: product.category.name,
     brand: { "@type": "Organization", name: site.name },
   };
-  const structuredDataJson = JSON.stringify(structuredData).replace(/</g, "\\u003c");
+  const structuredDataJson = jsonForHtml(structuredData);
 
   return (
     <main className="content-section">
       <div className="container product-detail">
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: structuredDataJson }} />
+        <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: structuredDataJson }} />
         <div className="product-info">
-          {product.imageUrl && isConfiguredImageSource(product.imageUrl) && <Image className="product-image" src={product.imageUrl} alt={product.name} width={640} height={640} sizes="(max-width: 760px) 100vw, 45vw" referrerPolicy="no-referrer" />}
-          {!product.imageUrl && <div className="product-placeholder" role="img" aria-label="No image available"><span>No image</span></div>}
-          {product.imageUrl && !isConfiguredImageSource(product.imageUrl) && isSafeExternalLink(product.imageUrl) && <a className="text-link" href={product.imageUrl} target="_blank" rel="noreferrer">Open linked product image ↗</a>}
+          {imageUrl && isConfiguredImageSource(imageUrl) && <Image className="product-image" src={imageUrl} alt={product.name} width={640} height={640} sizes="(max-width: 760px) 100vw, 45vw" referrerPolicy="no-referrer" />}
+          {!imageUrl && <div className="product-placeholder" role="img" aria-label="No image available"><span>No image</span></div>}
+          {imageUrl && !isConfiguredImageSource(imageUrl) && isSafeExternalLink(imageUrl) && <a className="text-link" href={imageUrl} target="_blank" rel="noreferrer">Open linked product image ↗</a>}
           <div className="prose-block">
             <p className="eyebrow">{product.category.name}</p>
             <h1>{product.name}</h1>

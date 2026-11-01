@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../src/generated/prisma/client";
 
 const siteUrl = new URL(process.env.SITE_URL ?? "");
 const databaseUrl = new URL(process.env.DATABASE_URL ?? "");
@@ -6,7 +7,7 @@ if (siteUrl.hostname !== "localhost" || !["localhost", "127.0.0.1", "::1"].inclu
   throw new Error("Seed refused: only a localhost test database is allowed.");
 }
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 async function main() {
   try {
     const category = await prisma.category.upsert({ where: { slug: "test-fixtures" }, update: {}, create: { name: "Test fixtures", slug: "test-fixtures" } });
@@ -21,6 +22,6 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
-  console.error("Test database seed failed.", error);
+  console.error("Test database seed failed.", error instanceof Error ? error.name : "unknown");
   process.exitCode = 1;
 });

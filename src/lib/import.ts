@@ -3,6 +3,11 @@ import ExcelJS from "exceljs";
 import slugify from "slugify";
 import { db } from "@/lib/db";
 import { isBlocked } from "@/lib/blocked";
+import { isSafeXlsxArchive, matchesFileExtension, sniffUploadType } from "@/lib/file-signatures";
+import { readBoundedBytes } from "@/lib/request-body";
+
+const MAX_IMPORT_ROWS = 5000;
+const MAX_IMPORT_COLUMNS = 100;
 
 export type Row = Record<string, string>;
 
@@ -37,23 +42,29 @@ function cellText(value: unknown): string {
 
 export async function parseFile(filename: string, buffer: Buffer): Promise<Row[]> {
   const extension = filename.split(".").pop()?.toLowerCase();
+  const detectedType = sniffUploadType(buffer);
+  if (!detectedType || !matchesFileExtension(filename, detectedType)) throw new Error("File content does not match an allowed catalogue format.");
   if (["csv", "tsv", "txt"].includes(extension ?? "")) {
     const delimiter = extension === "tsv" ? "\t" : undefined;
-    const result = Papa.parse<Row>(buffer.toString("utf8"), { header: true, skipEmptyLines: true, delimiter });
-    if (result.errors.length) throw new Error(`Could not parse ${filename}: ${result.errors[0].message}`);
+    if (extension === "txt") throw new Error("Unsupported catalogue format.");
+    const result = Papa.parse<Row>(buffer.toString("utf8"), { header: true, skipEmptyLines: true, delimiter, preview: MAX_IMPORT_ROWS + 1 });
+    if (result.errors.length || result.data.length > MAX_IMPORT_ROWS || (result.meta.fields?.length ?? 0) > MAX_IMPORT_COLUMNS) throw new Error("Catalogue file is malformed or exceeds row/column limits.");
     return result.data;
   }
   if (extension === "json") {
     const parsed: unknown = JSON.parse(buffer.toString("utf8"));
     const rows = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" && "products" in parsed ? parsed.products : null;
-    if (!Array.isArray(rows)) throw new Error("JSON must contain a product array or a products array.");
-    return rows.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object").map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, cellText(value)])));
+    if (!Array.isArray(rows) || rows.length > MAX_IMPORT_ROWS) throw new Error("Catalogue JSON must contain a product array and stay under the row limit.");
+    if (rows.some((row) => !row || typeof row !== "object" || Array.isArray(row) || Object.keys(row).length > MAX_IMPORT_COLUMNS)) throw new Error("Catalogue JSON rows must be simple product objects.");
+    return rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.slice(0, 100), cellText(value).slice(0, 5000)])));
   }
   if (extension === "xlsx") {
+    if (!isSafeXlsxArchive(buffer)) throw new Error("The workbook archive exceeds safe expansion limits.");
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
     const sheet = workbook.worksheets[0];
     if (!sheet) throw new Error("The workbook does not contain a worksheet.");
+    if (sheet.rowCount > MAX_IMPORT_ROWS + 1 || sheet.columnCount > MAX_IMPORT_COLUMNS) throw new Error("The worksheet exceeds row or column limits.");
     const headers: string[] = [];
     const rows: Row[] = [];
     sheet.eachRow((row, index) => {
@@ -80,7 +91,9 @@ export function sheetCsvUrl(input: string) {
 export async function fetchSheet(input: string) {
   const response = await fetch(sheetCsvUrl(input), { cache: "no-store", signal: AbortSignal.timeout(15000) });
   if (!response.ok) throw new Error("Could not read the sheet. Set sharing to Anyone with the link can view.");
-  return parseFile("sheet.csv", Buffer.from(await response.arrayBuffer()));
+  const body = await readBoundedBytes(response, 4 * 1024 * 1024);
+  if (!body.ok) throw new Error("The Google Sheet exceeds the import size limit.");
+  return parseFile("sheet.csv", Buffer.from(body.bytes));
 }
 
 export async function importRows(rows: Row[], dryRun = false) {

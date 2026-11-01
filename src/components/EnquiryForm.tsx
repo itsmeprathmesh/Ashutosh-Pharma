@@ -34,14 +34,14 @@ export function EnquiryForm({ product = "", productSlug = "", requiresLicence = 
 
   return (
     <form className="enquiry-form" onSubmit={submit}>
-      <label>{general ? "Name" : "Full name"}<input className="field" name="name" autoComplete="name" minLength={2} required /></label>
-      {!general && <label>Company<input className="field" name="company" autoComplete="organization" /></label>}
-      <label>{general ? "Email" : "Business email"}<input className="field" name="email" type="email" autoComplete="email" required /></label>
-      <label>{general ? "Phone" : "Phone / WhatsApp"}<input className="field" name="phone" autoComplete="tel" required={general} /></label>
-      {!general && <><label>Destination country<input className="field" name="country" autoComplete="country-name" minLength={2} required /></label><label>Product<input className="field" name="product" defaultValue={product} minLength={2} required /></label></>}
+      <label>{general ? "Name" : "Full name"}<input className="field" name="name" autoComplete="name" minLength={2} maxLength={120} required /></label>
+      {!general && <label>Company<input className="field" name="company" autoComplete="organization" maxLength={160} /></label>}
+      <label>{general ? "Email" : "Business email"}<input className="field" name="email" type="email" autoComplete="email" maxLength={254} required /></label>
+      <label>{general ? "Phone" : "Phone / WhatsApp"}<input className="field" name="phone" autoComplete="tel" maxLength={50} required={general} /></label>
+      {!general && <><label>Destination country<input className="field" name="country" autoComplete="country-name" minLength={2} maxLength={100} required /></label><label>Product<input className="field" name="product" defaultValue={product} minLength={2} maxLength={200} required /></label></>}
       <input type="hidden" name="productSlug" value={productSlug} />
-      {!general && <><label>Quantity / pack requirement<input className="field" name="quantity" required /></label><label>Importer licence number{requiresLicence ? " (required for Rx products)" : ""}<input className="field" name="licenceNo" required={requiresLicence} /></label></>}
-      <label>Message<textarea className="field" name="message" rows={4} required={general} /></label>
+      {!general && <><label>Quantity / pack requirement<input className="field" name="quantity" maxLength={120} required /></label><label>Importer licence number{requiresLicence ? " (required for Rx products)" : ""}<input className="field" name="licenceNo" maxLength={160} required={requiresLicence} /></label></>}
+      <label>Message<textarea className="field" name="message" rows={4} maxLength={3000} required={general} /></label>
       <label className="honeypot" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label>
       <button className="button" type="submit" disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Send enquiry"}</button>
       {state === "error" && <p role="alert" className="form-error">We could not send this enquiry. Please check the details and try again.</p>}

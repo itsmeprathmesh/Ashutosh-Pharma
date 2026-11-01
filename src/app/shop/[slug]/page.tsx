@@ -1,1 +1,3 @@
-﻿export { default, generateMetadata, dynamic } from "../../product/[slug]/page";
+﻿export { default, generateMetadata } from "../../product/[slug]/page";
+
+export const dynamic = "force-dynamic";

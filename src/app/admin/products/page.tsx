@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
 import { approveReviewProduct, deleteProduct, keepReviewProductHidden, saveProduct } from "@/app/admin/actions";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 type PageProps = { searchParams: Promise<{ q?: string; error?: string; saved?: string; deleted?: string; view?: string; approved?: string; hidden?: string }> };
 
 export default async function AdminProducts({ searchParams }: PageProps) {
+  await requireAdmin(true);
   const params = await searchParams;
   const reviewView = params.view === "review";
   const products = await db.product.findMany({

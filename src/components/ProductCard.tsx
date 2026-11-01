@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { Heart, Plus } from "lucide-react";
 import { addEnquiryItem } from "@/components/EnquiryList";
 import { site } from "@/config/site";
 
-export type CatalogProduct = { name: string; slug: string; imageUrl: string | null; packSize?: string | null; description?: string; rx?: boolean; category: { name: string; slug?: string } };
+export type CatalogProduct = { name: string; slug: string; images?: string[]; imageUrl: string | null; packSize?: string | null; description?: string; rx?: boolean; category: { name: string; slug?: string } };
 function safeImageSource(source: string | null) {
   if (!source) return null;
   if (/^\/products\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(source)) return source;
@@ -16,9 +17,11 @@ export function AddProductButton({ product, heart = false }: { product: Pick<Cat
   return heart ? <button className="icon-button heart-button" aria-label={`Save ${product.name} to enquiry list`} onClick={() => addEnquiryItem({ product: product.name, quantity: "", slug: product.slug })}><Heart size={18}/></button> : <button className="button button-small" onClick={() => addEnquiryItem({ product: product.name, quantity: "", slug: product.slug })}><Plus size={15}/> Add to enquiry</button>;
 }
 export function ProductCard({ product }: { product: CatalogProduct }) {
-  const image = safeImageSource(product.imageUrl);
+  const image = safeImageSource(product.images?.[0] ?? product.imageUrl);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const imageFailed = image !== null && failedImage === image;
   return <article className="product-card product-card-modern"><Link href={`/product/${product.slug}`} className="product-visual" aria-label={`View ${product.name}`}>
-    {image ? <Image src={image} alt={product.name} fill sizes="(max-width: 680px) 90vw, (max-width: 1000px) 45vw, 25vw" unoptimized loading="lazy" referrerPolicy="no-referrer"/> : <div className="product-placeholder" aria-hidden="true"><span>No image</span><small>Trade catalogue</small></div>}
+    {image && !imageFailed ? <Image src={image} alt={product.name} fill sizes="(max-width: 680px) 90vw, (max-width: 1000px) 45vw, 25vw" unoptimized loading="lazy" referrerPolicy="no-referrer" onError={() => setFailedImage(image)}/> : <div className="product-placeholder" role="img" aria-label="No image available"><span>No image</span><small>Trade catalogue</small></div>}
   </Link><div className="product-card-copy"><span className="product-category">{product.category.name}</span>{product.rx && <small>Licensed importers only</small>}<Link href={`/product/${product.slug}`}><h3>{product.name}</h3></Link>{product.packSize && <p>{product.packSize}</p>}<div className="product-card-actions"><Link className="button button-small" href={`/product/${product.slug}#quote`}>Request a quote</Link><a className="text-link" href={`https://wa.me/${site.whatsapp}?text=${encodeURIComponent(`Trade enquiry: ${product.name}`)}`} target="_blank" rel="noreferrer">WhatsApp ↗</a></div></div>
   </article>;
 }

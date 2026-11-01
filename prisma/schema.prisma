@@ -1,11 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 enum ProductStatus {
@@ -33,11 +32,12 @@ model Product {
   rx               Boolean  @default(true)
   patentRestricted Boolean  @default(false)
   published        Boolean  @default(true)
-  status           ProductStatus @default(active)
+  status           ProductStatus @default(review)
   statusNote       String?
+  form             String?
   priceInr         Decimal? @db.Decimal(12, 2)
   priceUnit        String?
-  images           Json     @default("[]")
+  images           String[] @default([])
   sourceRow        Int?
   categoryId       Int
   category         Category @relation(fields: [categoryId], references: [id])
@@ -103,9 +103,44 @@ model Subscriber {
 model AdminLoginAttempt {
   id        Int      @id @default(autoincrement())
   ipHash    String
+  emailHash String?
   createdAt DateTime @default(now())
 
   @@index([ipHash, createdAt])
+  @@index([emailHash, createdAt])
+  @@index([createdAt])
+}
+
+model AdminLoginLockout {
+  key        String   @id
+  lockedUntil DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([lockedUntil])
+}
+
+model AdminLoginCode {
+  id        String   @id @default(cuid())
+  email     String
+  emailHash String
+  ipHash    String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([emailHash, used, expiresAt])
+  @@index([expiresAt, used])
+}
+
+model PublicRateLimitAttempt {
+  id        Int      @id @default(autoincrement())
+  route     String
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@index([route, ipHash, createdAt])
   @@index([createdAt])
 }
 
