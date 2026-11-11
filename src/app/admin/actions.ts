@@ -30,6 +30,10 @@ const productSchema = z.object({
   rx: z.boolean(),
   patentRestricted: z.boolean(),
   published: z.boolean(),
+  featuredRank: z.number().int().positive().optional(),
+  priceInr: z.number().finite().nonnegative().max(9999999999.99).optional(),
+  priceUnit: z.string().trim().max(80).optional().default(""),
+  showPrice: z.boolean(),
 });
 
 function text(formData: FormData, key: string) {
@@ -55,6 +59,10 @@ export async function saveProduct(formData: FormData) {
     rx: checked(formData, "rx"),
     patentRestricted: checked(formData, "patentRestricted"),
     published: checked(formData, "published"),
+    featuredRank: text(formData, "featuredRank") ? Number(text(formData, "featuredRank")) : undefined,
+    priceInr: text(formData, "priceInr") ? Number(text(formData, "priceInr")) : undefined,
+    priceUnit: text(formData, "priceUnit"),
+    showPrice: checked(formData, "showPrice"),
   });
   if (!parsed.success) redirect("/admin/products?error=invalid");
 
@@ -80,6 +88,10 @@ export async function saveProduct(formData: FormData) {
     rx: item.rx,
     patentRestricted: item.patentRestricted,
     published: item.published,
+    featuredRank: item.featuredRank ?? null,
+    priceInr: item.priceInr ?? null,
+    priceUnit: item.priceUnit || null,
+    showPrice: item.showPrice,
     categoryId: category.id,
   };
 
@@ -90,6 +102,30 @@ export async function saveProduct(formData: FormData) {
   } else await db.product.create({ data });
   invalidatePublicData();
   redirect("/admin/products?saved=1");
+}
+
+export async function saveCatalogSettings(formData: FormData) {
+  await requireAdmin(true);
+  const showPrices = checked(formData, "showPrices");
+  await db.setting.upsert({ where: { id: 1 }, create: { id: 1, showPrices }, update: { showPrices } });
+  invalidatePublicData();
+  redirect("/admin/products?settings=saved");
+}
+
+export async function hideAllPrices() {
+  await requireAdmin(true);
+  await db.product.updateMany({ data: { showPrice: false } });
+  invalidatePublicData();
+  redirect("/admin/products?prices=hidden");
+}
+
+export async function saveCategoryDescription(formData: FormData) {
+  await requireAdmin(true);
+  const parsed = z.object({ id: z.coerce.number().int().positive(), description: z.string().trim().max(1200) }).safeParse({ id: text(formData, "categoryId"), description: text(formData, "description") });
+  if (!parsed.success) redirect("/admin/products?error=invalid");
+  await db.category.update({ where: { id: parsed.data.id }, data: { description: parsed.data.description } });
+  invalidatePublicData();
+  redirect("/admin/products?category=saved");
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -120,6 +156,20 @@ export async function attachUploadedImage(filename: string, imageUrl: string) {
   await db.product.update({ where: { id: product.id }, data: { imageUrl } });
   invalidatePublicData();
   return { matched: true };
+}
+
+export async function setCategoryImage(categoryId: number, imageUrl: string) {
+  await requireAdmin(true);
+  if (!Number.isInteger(categoryId) || categoryId < 1) return { ok: false, error: "Invalid category." };
+  let url: URL;
+  try { url = new URL(imageUrl); } catch { return { ok: false, error: "Invalid image URL." }; }
+  if (url.protocol !== "https:" || url.username || url.password || url.port || !url.hostname.endsWith(".public.blob.vercel-storage.com")) {
+    return { ok: false, error: "Only approved public Blob images can be used." };
+  }
+  await db.category.update({ where: { id: categoryId }, data: { imageUrl: url.href } });
+  revalidateTag("public-catalog", "max");
+  revalidatePath("/");
+  return { ok: true };
 }
 
 export async function updateEnquiryStatus(formData: FormData) {

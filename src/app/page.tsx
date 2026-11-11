@@ -1,261 +1,87 @@
 import Link from "next/link";
-import { manufacturers } from "@/data/manufacturers";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { CategoryScroller } from "@/components/CategoryScroller";
 import { EnquiryForm } from "@/components/EnquiryForm";
-import {
-  HeroCarousel,
-  MetricCounters,
-  ProductRow,
-} from "@/components/HomeSections";
-import type { CatalogProduct } from "@/components/ProductCard";
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import Image from "next/image";
+import { ProductCard, type CatalogProduct } from "@/components/ProductCard";
+import { QuickQuotePanel } from "@/components/QuickQuotePanel";
 import { isBlocked } from "@/lib/blocked";
+import { getPricePresentation } from "@/lib/currency";
 import { getHomeData } from "@/lib/public-data";
+import { safeDatabaseQuery } from "@/lib/db-safe";
+import { site } from "@/config/site";
 
 export const dynamic = "force-dynamic";
 
+const businessFacts = [
+  { value: "Trader · Wholesaler · Distributor", label: "Business" },
+  { value: "2024", label: "GST registered since" },
+  { value: "Nagpur, India", label: "Based in" },
+  { value: "Up to 10", label: "Team" },
+];
+
+const serviceNotes = [
+  "A broad portfolio of branded and generic medicines.",
+  "Quotes discussed clearly, product by product.",
+  "Regulatory documentation and import support.",
+  "Responsive support for professional buyers.",
+];
+
 export default async function Home() {
   const data = process.env.DATABASE_URL && process.env.TEST_DATABASE_ENABLED !== "false"
-    ? await getHomeData().catch(() => null)
+    ? await safeDatabaseQuery(() => getHomeData(), null)
     : null;
-  const [dbTrending, dbArrivals, categories, posts] = data ?? [[], [], [], []];
-  const visible = (product: (typeof dbTrending)[number]) =>
+  const [dbFeatured, dbArrivals, categories, offers, reviews, posts, showPrices] = data ?? [[], [], [], [], [], [], false];
+  const visible = (product: (typeof dbFeatured)[number]) =>
     !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`);
-  const trending = dbTrending.filter(visible).sort((a, b) => a.name.localeCompare(b.name));
-  const arrivals = dbArrivals.filter(visible);
-  const products = (list: typeof trending) =>
-    list
-      .slice(0, 8)
-      .map(
-        (p): CatalogProduct => ({
-          name: p.name,
-          slug: p.slug,
-          images: p.images,
-          imageUrl: p.imageUrl,
-          packSize: p.packSize,
-          description: p.description,
-          rx: p.rx,
-          category: { name: p.category.name, slug: p.category.slug },
-        }),
-      );
-  const certDir = join(process.cwd(), "public", "certs");
-  const certificates = existsSync(certDir)
-    ? readdirSync(certDir).filter((name) =>
-        /\.(png|jpe?g|webp|svg)$/i.test(name),
-      )
-    : [];
-  return (
-    <main id="main-content">
-      <HeroCarousel />
-      <section className="business-profile-band">
-        <div className="container">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Ashutosh Pharma · Nagpur, India</span>
-              <h2>Wholesale and distribution for professional buyers</h2>
-            </div>
-            <Link className="text-link" href="/about">
-              About us ↗
-            </Link>
-          </div>
-          <div className="business-profile-grid">
-            <article className="business-profile-card">
-              <span>Nature of business</span>
-              <strong>Trader · Wholesaler · Distributor</strong>
-            </article>
-            <article className="business-profile-card">
-              <span>Legal structure</span>
-              <strong>Proprietorship</strong>
-            </article>
-            <article className="business-profile-card">
-              <span>Team size</span>
-              <strong>Up to 10 people</strong>
-            </article>
-            <article className="business-profile-card">
-              <span>GST registration</span>
-              <strong>2024</strong>
-            </article>
-          </div>
+  const featured = dbFeatured.filter(visible).slice(0, 10);
+  const arrivals = dbArrivals.filter(visible).slice(0, 8);
+  const toCard = (product: (typeof featured)[number]): CatalogProduct => ({
+    name: product.name,
+    slug: product.slug,
+    images: product.images,
+    imageUrl: product.imageUrl,
+    strength: product.strength,
+    packSize: product.packSize,
+    description: product.description,
+    rx: product.rx,
+    category: { name: product.category.name, slug: product.category.slug },
+    price: getPricePresentation({ globalEnabled: showPrices, productEnabled: product.showPrice, priceInr: product.priceInr, priceUnit: product.priceUnit }),
+  });
+
+  return <main id="main-content">
+    <section className="home-hero">
+      <div className="container home-hero-grid">
+        <div className="home-hero-copy">
+          <span className="eyebrow">Ashutosh Pharma <span aria-hidden="true">/</span> Nagpur, India</span>
+          <h1>Medicine supply, built around a <em>clear conversation.</em></h1>
+          <p>Trade enquiries for licensed importers, distributors and institutional buyers. Tell us what you need and where it is going.</p>
+          <div className="hero-actions"><Link className="button button-primary" href="/contact">Request a quote <ArrowUpRight size={17}/></Link><Link className="button button-secondary" href="/shop">Browse catalogue <ArrowRight size={16}/></Link></div>
+          <dl className="hero-facts">{businessFacts.map((fact, index) => <div key={fact.label}><dt>{fact.label}</dt><dd className={index === 0 ? "fact-business" : ""}>{fact.value}</dd></div>)}</dl>
         </div>
-      </section>
-      <ProductRow
-        label="Trending Now"
-        title="Explore featured products"
-        products={products(trending)}
-      />
-      <section className="trust-banner">
-        <div className="container trust-banner-inner">
-          <span className="eyebrow">A procurement partner you can reach</span>
-          <h2>Reliable conversations for medicine procurement.</h2>
-          <div className="trust-points">
-            <p>Branded and generic medicines across a broad portfolio</p>
-            <p>Quality-focused sourcing and clear quote discussions</p>
-            <p>Regulatory documentation and import support</p>
-            <p>Responsive customer support</p>
-          </div>
-          <Link className="button button-light" href="/shop">
-            See our products ↗
-          </Link>
-        </div>
-      </section>
-      <ProductRow
-        label="Recently added"
-        title="Explore the catalogue"
-        products={products(arrivals)}
-      />
-      <section className="section browse-section">
-        <div className="container">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Browse by therapeutic area</span>
-              <h2>Choose by area</h2>
-            </div>
-            <p>
-              Explore published categories. Product availability is discussed
-              with professional buyers.
-            </p>
-          </div>
-          <div className="category-grid">
-            {categories.map((cat, i) => (
-              <Link
-                href={`/shop?cat=${cat.slug}`}
-                className="category-tile"
-                key={cat.id}
-              >
-                <span className="category-icon" aria-hidden="true">
-                  {["✳", "◈", "⌬", "✣"][i % 4]}
-                </span>
-                <strong>{cat.name}</strong>
-                <small>{cat._count.products} listed products</small>
-              </Link>
-            ))}
-          </div>
-          <div className="manufacturer-section">
-            <h3>Manufacturers</h3>
-            {manufacturers.length ? (
-              <div className="manufacturer-grid">
-                {manufacturers.map((name) => (
-                  <span key={name}>{name}</span>
-                ))}
-              </div>
-            ) : (
-              <p className="form-note">
-                Manufacturer names will appear here after distribution
-                relationships are confirmed by the client.
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-      <section className="supplier-section">
-        <div className="container">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Professional supply enquiries</span>
-              <h2>A considered partner for your supply needs.</h2>
-            </div>
-            <p>
-              We focus on clear communication with importers and institutional
-              buyers.
-            </p>
-          </div>
-          {certificates.length > 0 && (
-            <div
-              className="certificate-strip"
-              aria-label="Client-supplied certificates and logos"
-            >
-              {certificates.map((file) => (
-                <Image
-                  key={file}
-                  src={`/certs/${encodeURIComponent(file)}`}
-                  alt="Client-supplied certificate or logo"
-                  width={180}
-                  height={100}
-                  unoptimized
-                />
-              ))}
-            </div>
-          )}
-          <MetricCounters />
-          <p className="form-note">
-            TODO: Replace each metric with client-verified figures before
-            publishing. Only client-supplied certificate and logo files appear
-            here.
-          </p>
-        </div>
-      </section>
-      <section className="section contact-section">
-        <div className="container contact-grid">
-          <div>
-            <span className="eyebrow">Start a conversation</span>
-            <h2>We offer a wide variety of products.</h2>
-            <p>
-              Tell us what you are sourcing and our team will respond to your
-              business enquiry.
-            </p>
-          </div>
-          <div className="enquiry-panel">
-            <h3>Contact our team</h3>
-            <EnquiryForm general />
-          </div>
-        </div>
-      </section>
-      <section className="section blog-section">
-        <div className="container">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Insights</span>
-              <h2>From the blog</h2>
-            </div>
-            <Link href="/blog" className="text-link">
-              All articles ↗
-            </Link>
-          </div>
-          {posts.length ? (
-            <div className="blog-grid">
-              {posts.map((post) => (
-                <article className="blog-card" key={post.id}>
-                  <Link href={`/blog/${post.slug}`} className="blog-image">
-                    <Image
-                      src={
-                        post.imageUrl &&
-                        /^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(
-                          post.imageUrl,
-                        )
-                          ? post.imageUrl
-                          : "/blog-journal.svg"
-                      }
-                      alt=""
-                      fill
-                      sizes="(max-width:680px) 90vw, 33vw"
-                      unoptimized
-                    />
-                  </Link>
-                  <span className="product-category">
-                    {post.category} ·{" "}
-                    {new Intl.DateTimeFormat("en", {
-                      dateStyle: "medium",
-                    }).format(post.createdAt)}
-                  </span>
-                  <h3>
-                    <Link href={`/blog/${post.slug}`}>{post.title}</Link>
-                  </h3>
-                  <p>{post.excerpt}</p>
-                  <Link className="text-link" href={`/blog/${post.slug}`}>
-                    Read more ↗
-                  </Link>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              New trade insights will be published here. TODO: Add
-              client-approved blog articles.
-            </div>
-          )}
-        </div>
-      </section>
-    </main>
-  );
+        <QuickQuotePanel/>
+      </div>
+    </section>
+
+    <CategoryScroller categories={categories}/>
+
+    {featured.length > 0 && <section className="home-section featured-section">
+      <div className="container">
+        <div className="section-heading-row"><div><span className="eyebrow">Selected catalogue</span><h2>Products for your next enquiry</h2><p className="section-intro">Specifications and availability are confirmed with each trade request.</p></div><Link className="text-link" href="/shop">Full catalogue <ArrowRight size={15}/></Link></div>
+        <div className="product-grid featured-product-grid">{featured.map((product, index) => <ProductCard key={product.id} product={toCard(product)} number={index + 1}/>)}</div>
+        {showPrices && featured.some((product) => product.showPrice && Number(product.priceInr) > 0) && <p className="price-disclaimer">Indicative price, excluding GST, shipping and duties. Final quote on request.</p>}
+      </div>
+    </section>}
+
+    {offers.length > 0 && <section className="offers-section" id="offers" aria-label="Current offers"><div className="container offers-grid">{offers.map((offer) => <article className="offer-card" key={offer.id}><span className="eyebrow">Trade notice</span><h2>{offer.title}</h2><p>{offer.shortText}</p>{offer.validUntil && <time dateTime={offer.validUntil.toISOString()}>Valid until {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(offer.validUntil)}</time>}<Link href={offer.buttonUrl?.startsWith("/") && !offer.buttonUrl.startsWith("//") && !offer.buttonUrl.includes("\\") ? offer.buttonUrl : "/contact"} className="text-link">{offer.buttonText || "Discuss this offer"} <ArrowUpRight size={15}/></Link></article>)}</div></section>}
+
+    {arrivals.length > 0 && <section className="home-section arrival-section"><div className="container"><div className="section-heading-row"><div><span className="eyebrow">Recently added</span><h2>New in the catalogue</h2></div><Link className="text-link" href="/shop?sort=newest">See new arrivals <ArrowRight size={15}/></Link></div><div className="product-grid">{arrivals.map((product) => <ProductCard key={product.id} product={toCard(product)}/>)}</div></div></section>}
+
+    <section className="home-section why-section"><div className="container why-grid"><div className="why-intro"><span className="eyebrow">Working together</span><h2>Clear information.<br/>Responsive people.</h2><p>Support for professional pharmaceutical procurement, from the first product list to destination requirements.</p></div><div className="why-statements">{serviceNotes.map((text, index) => <p key={text}><span className="mono-mark">0{index + 1}</span>{text}</p>)}</div></div></section>
+
+    {reviews.length > 0 && <section className="home-section reviews-section"><div className="container"><div className="section-heading-row"><div><span className="eyebrow">Approved buyer feedback</span><h2>What buyers have shared</h2></div></div><div className="review-layout"><figure className="review-feature"><blockquote>“{reviews[0].quote}”</blockquote><figcaption><strong>{reviews[0].name}</strong><span>{reviews[0].company} · {reviews[0].country}</span><time dateTime={reviews[0].reviewDate.toISOString()}>{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(reviews[0].reviewDate)}</time></figcaption></figure>{reviews.length > 1 && <div className="review-list">{reviews.slice(1).map((review) => <article key={review.id}><p>“{review.quote}”</p><span>{review.name} · {review.company}, {review.country}</span><time dateTime={review.reviewDate.toISOString()}>{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(review.reviewDate)}</time></article>)}</div>}</div></div></section>}
+
+    {posts.length > 0 && <section className="home-section blog-section"><div className="container"><div className="section-heading-row"><div><span className="eyebrow">From the journal</span><h2>Trade notes and updates</h2></div><Link className="text-link" href="/blog">All articles <ArrowRight size={15}/></Link></div><div className="blog-grid">{posts.map((post, index) => <article className="blog-card" key={post.id}><Link href={`/blog/${post.slug}`} className="blog-type-art" aria-label={`Read ${post.title}`}><span className="mono-mark">0{index + 1}</span><span>{post.category}</span></Link><div className="blog-card-copy"><span className="product-category">{post.category} · {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(post.createdAt)}</span><h3><Link href={`/blog/${post.slug}`}>{post.title}</Link></h3><p>{post.excerpt}</p><Link className="text-link" href={`/blog/${post.slug}`}>Read article <ArrowRight size={15}/></Link></div></article>)}</div></div></section>}
+
+    <section className="home-contact-section"><div className="container home-contact-grid"><div><span className="eyebrow">Start a trade conversation</span><h2>Send your requirement to our team.</h2><p>Share the details that will help us understand your product and market.</p><Link className="contact-detail" href={`mailto:${site.email}`}>{site.email}<ArrowUpRight size={15}/></Link><Link className="contact-detail" href={`https://wa.me/${site.whatsapp}`}>WhatsApp {site.phone}<ArrowUpRight size={15}/></Link></div><div className="enquiry-panel"><h3>General enquiry</h3><EnquiryForm general/></div></div></section>
+  </main>;
 }

@@ -1,10 +1,17 @@
+import { site } from "@/config/site";
+
 type LegalPlaceholderProps = { title: string; purpose: string };
 
 export function LegalPlaceholder({ title, purpose }: LegalPlaceholderProps) {
+  const detail = title.toLowerCase().includes("privacy")
+    ? ["Information submitted through an enquiry form is used to respond to the request and follow up on the business conversation. Enquiry details are stored so the team can manage and respond to requests.", "This website uses hosting, database and email delivery services to operate its enquiry features. Do not include patient information or medical records in a message.", `For questions about an enquiry, contact ${site.email}.`]
+    : title.toLowerCase().includes("refund") || title.toLowerCase().includes("returns")
+      ? ["This website accepts trade enquiries only. It does not take orders, payments or consumer purchases online.", "Any supply, payment, cancellation, return or refund terms for a separately agreed transaction are confirmed in its written quotation or order documents.", "For an existing business transaction, contact the team using the details in your quotation or order correspondence."]
+      : ["This website provides catalogue information and a way to contact Ashutosh Pharma about business requirements. Submitting an enquiry does not create an order or confirm product availability.", "Product details, availability, commercial terms, supporting documents and destination requirements are discussed for each request. Importers should confirm applicable local requirements with qualified advisers and relevant authorities.", `For questions about using this website, contact ${site.email}.`];
   return (
     <main id="main-content">
-      <section className="page-hero"><div className="container"><span className="eyebrow">Information</span><h1>{title}</h1><p>TODO: This draft is a placeholder and must be reviewed and completed by the client’s legal adviser before publication.</p></div></section>
-      <section className="content-section"><div className="container prose-block"><h2>{purpose}</h2><p>This page is not legal advice and does not describe a final company policy. The final text should explain the company’s actual practices, applicable terms, and contact details in language reviewed for the markets in which the website operates.</p><p>TODO: Add verified business details, effective date, contact information, and client-approved policy language.</p></div></section>
+      <section className="page-hero"><div className="container"><span className="eyebrow">Ashutosh Pharma <span aria-hidden="true">/</span> Information</span><h1>{title}</h1><p>{purpose} for professional trade enquiries.</p></div></section>
+      <section className="content-section"><div className="container prose-block legal-copy"><h2>{purpose}</h2>{detail.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></section>
     </main>
   );
 }

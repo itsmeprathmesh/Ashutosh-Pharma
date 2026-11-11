@@ -3,13 +3,10 @@ import { EnquiryForm } from "@/components/EnquiryForm";
 
 export const metadata: Metadata = {
   title: "Consultas comerciais no Brasil",
-  description: "Página preliminar para consultas de importadores licenciados no Brasil. Requer revisão regulatória antes da publicação.",
-  alternates: {
-    canonical: "/pt-br/export/brazil",
-    languages: { "en-US": "/export/brazil", "pt-BR": "/pt-br/export/brazil" },
-  },
+  description: "Entre em contato com a Ashutosh Pharma para uma consulta comercial de produtos farmacêuticos no Brasil.",
+  alternates: { canonical: "/pt-br/export/brazil", languages: { "en-US": "/export/brazil", "pt-BR": "/pt-br/export/brazil" } },
 };
 
 export default function BrazilPortuguesePage() {
-  return <main><section className="page-hero"><div className="container"><span className="eyebrow">Página preliminar · Brasil</span><h1>Consultas comerciais para importadores licenciados</h1><p>TODO: revisar esta página em português com um profissional qualificado e confirmar todas as informações sobre requisitos, documentos e fornecimento antes da publicação.</p></div></section><section className="content-section"><div className="container country-layout"><div className="prose-block"><h2>Informações sobre o destino</h2><p>TODO: adicionar conteúdo original e específico para o Brasil após revisão do cliente e de um profissional regulatório. Não afirmar aprovações, registros, certificações ou prazos sem documentação confirmada.</p><p>As exigências devem ser verificadas com a autoridade competente e com assessoria local antes de qualquer pedido.</p></div><section className="enquiry-panel"><h2>Solicitar uma cotação comercial</h2><p>Para importadores e compradores institucionais licenciados.</p><EnquiryForm /></section></div></section></main>;
+  return <main id="main-content"><section className="page-hero"><div className="container"><span className="eyebrow">Consultas comerciais <span aria-hidden="true">/</span> Brasil</span><h1>Converse com nossa equipe<br/><em>sobre sua necessidade.</em></h1><p>Atendemos consultas comerciais de importadores e compradores institucionais. Disponibilidade, documentação e requisitos de importação são avaliados caso a caso.</p></div></section><section className="content-section"><div className="container country-layout"><div className="prose-block country-copy"><span className="eyebrow">Antes de enviar</span><h2>Informe o produto e o destino.</h2><p>Inclua o nome do produto, a quantidade desejada, o país de destino e seus dados comerciais. Nossa equipe entrará em contato para conversar sobre a consulta.</p><p>O importador deve confirmar as autorizações e os requisitos locais com profissionais qualificados e autoridades competentes. O envio de uma consulta não confirma disponibilidade nem constitui um pedido.</p></div><section className="enquiry-panel"><span className="eyebrow">Compradores profissionais</span><h2>Solicitar uma cotação</h2><EnquiryForm/></section></div></section></main>;
 }

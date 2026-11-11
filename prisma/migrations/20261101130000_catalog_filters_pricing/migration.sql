@@ -1,0 +1,17 @@
+ALTER TABLE "Category"
+ADD COLUMN "description" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "Product"
+ADD COLUMN "showPrice" BOOLEAN NOT NULL DEFAULT true;
+
+CREATE TABLE "Setting" (
+    "id" INTEGER NOT NULL DEFAULT 1,
+    "showPrices" BOOLEAN NOT NULL DEFAULT true,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Setting_pkey" PRIMARY KEY ("id")
+);
+
+INSERT INTO "Setting" ("id", "showPrices", "updatedAt")
+VALUES (1, true, CURRENT_TIMESTAMP)
+ON CONFLICT ("id") DO NOTHING;

@@ -1,7 +1,7 @@
 import { LegalPlaceholder } from "@/components/LegalPlaceholder";
 
-export const metadata = { title: "Returns information", description: "Draft returns information for professional customers, pending client and legal review.", alternates: { canonical: "/returns" } };
+export const metadata = { title: "Returns information", description: "Information about returns for separately agreed business transactions.", alternates: { canonical: "/returns" } };
 
 export default function ReturnsPage() {
-  return <LegalPlaceholder title="Returns and order enquiries" purpose="Client-approved order and returns policy" />;
+  return <LegalPlaceholder title="Returns and order enquiries" purpose="Returns information for business transactions" />;
 }

@@ -1,0 +1,24 @@
+:root {
+  color-scheme: light;
+  --paper: #f7f4ee;
+  --white: #ffffff;
+  --ink: #14211f;
+  --forest: #1f4d43;
+  --orange: #d97a2b;
+  --muted: #5e6b66;
+  --hairline: #d9d4c7;
+  --surface: var(--white);
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --line: var(--hairline);
+  --navy: var(--ink);
+  --teal: var(--forest);
+  --teal-dark: var(--forest);
+  --sand: var(--paper);
+  --accent: var(--orange);
+  --font-display: var(--font-source-serif), Georgia, serif;
+  --font-body: var(--font-public-sans), Arial, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), Consolas, monospace;
+  --container: 1200px;
+  --radius: 6px;
+}

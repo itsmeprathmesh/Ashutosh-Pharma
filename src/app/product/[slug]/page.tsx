@@ -1,94 +1,86 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { EnquiryForm } from "@/components/EnquiryForm";
-import { getPublicProduct } from "@/lib/public-data";
-import { isBlocked } from "@/lib/blocked";
+import { ProductGallery } from "@/components/ProductGallery";
+import { ProductCard, AddProductButton } from "@/components/ProductCard";
 import { SingleEnquiryButton } from "@/components/SingleEnquiryButton";
-import { AddProductButton } from "@/components/ProductCard";
 import { site } from "@/config/site";
+import { isBlocked } from "@/lib/blocked";
+import { getPricePresentation } from "@/lib/currency";
 import { safeDatabaseQuery } from "@/lib/db-safe";
-import { headers } from "next/headers";
+import { getPublicPriceSetting, getPublicProduct, getRelatedProducts } from "@/lib/public-data";
 import { jsonForHtml } from "@/lib/json-safe";
 
 export const dynamic = "force-dynamic";
 type PageProps = { params: Promise<{ slug: string }> };
 
-function isConfiguredImageSource(source: string) {
-  if (/^\/products\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(source)) return true;
-  try {
-    const hostname = new URL(source).hostname;
-    return hostname.endsWith(".public.blob.vercel-storage.com") || hostname === "5.imimg.com";
-  } catch {
-    return false;
-  }
-}
-
-function isSafeExternalLink(source: string) {
-  try {
-    return ["https:", "http:"].includes(new URL(source).protocol);
-  } catch {
-    return false;
-  }
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await safeDatabaseQuery(() => getPublicProduct(slug), null);
   if (!product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) return {};
-  return {
-    title: product.name,
-    description: product.description.slice(0, 155),
-    alternates: { canonical: `/product/${product.slug}` },
-    openGraph: { title: product.name, description: product.description.slice(0, 155) },
-  };
+  return { title: product.name, description: product.description.slice(0, 155), alternates: { canonical: `/product/${product.slug}` }, openGraph: { title: product.name, description: product.description.slice(0, 155) } };
 }
 
 export default async function ProductPage({ params }: PageProps) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const { slug } = await params;
   const product = await safeDatabaseQuery(() => getPublicProduct(slug), null);
   if (!product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) notFound();
-  const imageUrl = product.images[0] ?? product.imageUrl;
-
+  const [globalPriceSwitch, relatedRows] = await Promise.all([
+    safeDatabaseQuery(() => getPublicPriceSetting(), false),
+    safeDatabaseQuery(() => getRelatedProducts(product.categoryId, product.id), []),
+  ]);
+  const price = getPricePresentation({ globalEnabled: globalPriceSwitch, productEnabled: product.showPrice, priceInr: product.priceInr, priceUnit: product.priceUnit });
+  const related = relatedRows.filter((item) => !isBlocked(`${item.name} ${item.generic ?? ""} ${item.description}`)).slice(0, 4).map((item) => ({
+    ...item,
+    price: getPricePresentation({ globalEnabled: globalPriceSwitch, productEnabled: item.showPrice, priceInr: item.priceInr, priceUnit: item.priceUnit }),
+  }));
+  const canonical = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://ashutoshpharmaa.com"}/product/${product.slug}`;
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     description: product.description,
-    image: imageUrl,
+    image: product.images.length ? product.images : product.imageUrl ?? undefined,
     category: product.category.name,
     brand: { "@type": "Organization", name: site.name },
+    url: canonical,
+    ...(price ? { offers: { "@type": "Offer", price: Number(product.priceInr), priceCurrency: "INR" } } : {}),
   };
-  const structuredDataJson = jsonForHtml(structuredData);
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: process.env.NEXT_PUBLIC_SITE_URL ?? "https://ashutoshpharmaa.com" },
+      { "@type": "ListItem", position: 2, name: "Shop", item: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://ashutoshpharmaa.com"}/shop` },
+      { "@type": "ListItem", position: 3, name: product.category.name, item: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://ashutoshpharmaa.com"}/category/${product.category.slug}` },
+      { "@type": "ListItem", position: 4, name: product.name, item: canonical },
+    ],
+  };
+  const cspNonce = (await headers()).get("x-nonce") ?? undefined;
+  const productJson = jsonForHtml(structuredData);
+  const breadcrumbJson = jsonForHtml(breadcrumbs);
+  const whatsappHref = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(`Trade enquiry: ${product.name}`)}`;
+  const specs = [["Composition", product.generic], ["Strength", product.strength], ["Pack size", product.packSize], ["Form", product.form], ["Prescription", product.rx ? "Yes · licensed importers" : "No prescription flag"]] as const;
 
-  return (
-    <main className="content-section">
-      <div className="container product-detail">
-        <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: structuredDataJson }} />
-        <div className="product-info">
-          {imageUrl && isConfiguredImageSource(imageUrl) && <Image className="product-image" src={imageUrl} alt={product.name} width={640} height={640} sizes="(max-width: 760px) 100vw, 45vw" referrerPolicy="no-referrer" />}
-          {!imageUrl && <div className="product-placeholder" role="img" aria-label="No image available"><span>No image</span></div>}
-          {imageUrl && !isConfiguredImageSource(imageUrl) && isSafeExternalLink(imageUrl) && <a className="text-link" href={imageUrl} target="_blank" rel="noreferrer">Open linked product image ↗</a>}
-          <div className="prose-block">
-            <p className="eyebrow">{product.category.name}</p>
-            <h1>{product.name}</h1>
-            <p>{product.description}</p>
-            {product.generic && <p><strong>Generic:</strong> {product.generic}</p>}
-            {product.strength && <p><strong>Strength:</strong> {product.strength}</p>}
-            {product.packSize && <p><strong>Pack:</strong> {product.packSize}</p>}
-            {product.rx && <p><strong>Licensed importers only.</strong></p>}
-            {product.patentRestricted && <p>Enquiry only. Product availability is subject to applicable patent restrictions.</p>}
-            <p><a className="text-link" href={`https://wa.me/${site.whatsapp}?text=${encodeURIComponent(`Trade enquiry: ${product.name}`)}`}>Ask about this product on WhatsApp ↗</a></p>
-            <div className="product-detail-actions"><AddProductButton product={product}/>{process.env.DATABASE_URL ? <SingleEnquiryButton product={product.name} slug={product.slug} rx={product.rx}/> : <a className="button button-outline" href={`https://wa.me/${site.whatsapp}?text=${encodeURIComponent(`Trade enquiry: ${product.name}`)}`}>Request a quote on WhatsApp</a>}</div>
-          </div>
-        </div>
-        {process.env.DATABASE_URL && <section id="quote" className="enquiry-panel">
-          <h2>Request a trade quote</h2>
-          <p>For licensed importers and institutional buyers.</p>
-          <EnquiryForm product={product.name} productSlug={product.slug} requiresLicence={product.rx} />
-        </section>}
+  return <main id="main-content" className="content-section product-page">
+    <div className="container">
+      <nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">Home</Link><span>/</span><Link href="/shop">Shop</Link><span>/</span><Link href={`/category/${product.category.slug}`}>{product.category.name}</Link><span>/</span><span aria-current="page">{product.name}</span></nav>
+      <script type="application/ld+json" nonce={cspNonce} dangerouslySetInnerHTML={{ __html: productJson }}/>
+      <script type="application/ld+json" nonce={cspNonce} dangerouslySetInnerHTML={{ __html: breadcrumbJson }}/>
+      <div className="product-detail product-detail-redesign">
+        <ProductGallery name={product.name} images={[...product.images, ...(product.imageUrl ? [product.imageUrl] : [])]}/>
+        <section className="product-detail-copy"><Link className="eyebrow" href={`/category/${product.category.slug}`}>{product.category.name}</Link><h1>{product.name}</h1>{product.patentRestricted && <p className="patent-note">Enquiry only. Product availability is subject to applicable patent restrictions.</p>}
+          <table className="product-spec-table"><tbody>{specs.map(([label, value]) => value ? <tr key={label}><th scope="row">{label}</th><td>{value}</td></tr> : null)}</tbody></table>
+          {price && <div className="product-price-block"><p className="product-price-current">{price.inr}</p><p className="price-disclaimer">Indicative wholesale price in INR, excluding GST, shipping and duties. Final quote on request.</p></div>}
+          <p className="product-description">{product.description}</p>
+          <div className="product-detail-actions"><AddProductButton product={product}/><a className="button button-outline" href={whatsappHref} target="_blank" rel="noreferrer">Ask on WhatsApp</a>{process.env.DATABASE_URL && <SingleEnquiryButton product={product.name} slug={product.slug} rx={product.rx}/>}</div>
+          <p className="documentation-note">Supplied against valid import documentation.</p>
+        </section>
       </div>
-    </main>
-  );
+      {process.env.DATABASE_URL && <section id="quote" className="enquiry-panel product-enquiry-panel"><h2>Request a trade quote</h2><p>For licensed importers and institutional buyers.</p><EnquiryForm product={product.name} productSlug={product.slug} requiresLicence={product.rx}/></section>}
+      {related.length > 0 && <section className="related-products"><div className="section-heading-row"><div><span className="eyebrow">More in {product.category.name}</span><h2>Related products</h2></div><Link className="text-link" href={`/category/${product.category.slug}`}>View category</Link></div><div className="product-grid">{related.map((item) => <ProductCard key={item.id} product={item}/>)}</div></section>}
+    </div>
+  </main>;
 }
