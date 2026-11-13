@@ -11,6 +11,7 @@ import { isBlocked } from "@/lib/blocked";
 import { getPricePresentation } from "@/lib/currency";
 import { safeDatabaseQuery } from "@/lib/db-safe";
 import { getPublicPriceSetting, getPublicProduct, getRelatedProducts } from "@/lib/public-data";
+import { findStaticProduct } from "@/lib/catalog-fallback";
 import { jsonForHtml } from "@/lib/json-safe";
 
 export const dynamic = "force-dynamic";
@@ -18,18 +19,18 @@ type PageProps = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null);
+  const product = (await safeDatabaseQuery(() => getPublicProduct(slug), null)) ?? findStaticProduct(slug);
   if (!product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) return {};
   return { title: product.name, description: product.description.slice(0, 155), alternates: { canonical: `/product/${product.slug}` }, openGraph: { title: product.name, description: product.description.slice(0, 155) } };
 }
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await safeDatabaseQuery(() => getPublicProduct(slug), null);
+  const product = (await safeDatabaseQuery(() => getPublicProduct(slug), null)) ?? findStaticProduct(slug);
   if (!product || isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)) notFound();
   const [globalPriceSwitch, relatedRows] = await Promise.all([
-    safeDatabaseQuery(() => getPublicPriceSetting(), false),
-    safeDatabaseQuery(() => getRelatedProducts(product.categoryId, product.id), []),
+    safeDatabaseQuery(() => getPublicPriceSetting(), true),
+    typeof product.id === "number" && typeof product.categoryId === "number" ? safeDatabaseQuery(() => getRelatedProducts(Number(product.categoryId), Number(product.id)), []) : Promise.resolve([]),
   ]);
   const price = getPricePresentation({ globalEnabled: globalPriceSwitch, productEnabled: product.showPrice, priceInr: product.priceInr, priceUnit: product.priceUnit });
   const related = relatedRows.filter((item) => !isBlocked(`${item.name} ${item.generic ?? ""} ${item.description}`)).slice(0, 4).map((item) => ({
@@ -73,7 +74,7 @@ export default async function ProductPage({ params }: PageProps) {
         <ProductGallery name={product.name} images={[...product.images, ...(product.imageUrl ? [product.imageUrl] : [])]}/>
         <section className="product-detail-copy"><Link className="eyebrow" href={`/category/${product.category.slug}`}>{product.category.name}</Link><h1>{product.name}</h1>{product.patentRestricted && <p className="patent-note">Enquiry only. Product availability is subject to applicable patent restrictions.</p>}
           <table className="product-spec-table"><tbody>{specs.map(([label, value]) => value ? <tr key={label}><th scope="row">{label}</th><td>{value}</td></tr> : null)}</tbody></table>
-          {price && <div className="product-price-block"><p className="product-price-current">{price.inr}</p><p className="price-disclaimer">Indicative wholesale price in INR, excluding GST, shipping and duties. Final quote on request.</p></div>}
+          {price && <div className="product-price-block"><p className="product-price-current">{price.inr}</p><p className="price-disclaimer">Indicative wholesale price in INR. Indicative price, excluding GST, shipping and duties. Final quote on request.</p></div>}
           <p className="product-description">{product.description}</p>
           <div className="product-detail-actions"><AddProductButton product={product}/><a className="button button-outline" href={whatsappHref} target="_blank" rel="noreferrer">Ask on WhatsApp</a>{process.env.DATABASE_URL && <SingleEnquiryButton product={product.name} slug={product.slug} rx={product.rx}/>}</div>
           <p className="documentation-note">Supplied against valid import documentation.</p>

@@ -9,6 +9,7 @@ import { getPricePresentation } from "@/lib/currency";
 import { getHomeData } from "@/lib/public-data";
 import { safeDatabaseQuery } from "@/lib/db-safe";
 import { site } from "@/config/site";
+import { getStaticCategories, getStaticProducts } from "@/lib/catalog-fallback";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,15 @@ export default async function Home() {
   const data = process.env.DATABASE_URL && process.env.TEST_DATABASE_ENABLED !== "false"
     ? await safeDatabaseQuery(() => getHomeData(), null)
     : null;
-  const [dbFeatured, dbArrivals, categories, offers, reviews, posts, showPrices] = data ?? [[], [], [], [], [], [], false];
-  const visible = (product: (typeof dbFeatured)[number]) =>
+  const fallbackProducts = getStaticProducts();
+  const [dbFeatured, dbArrivals, dbCategories, offers, reviews, posts, showPrices] = data ?? [[], [], [], [], [], [], true];
+  const catalogFeatured = dbFeatured.length ? dbFeatured : fallbackProducts;
+  const catalogArrivals = dbArrivals.length ? dbArrivals : fallbackProducts;
+  const categories = dbFeatured.length && dbCategories.length ? dbCategories : getStaticCategories();
+  const visible = (product: (typeof catalogFeatured)[number]) =>
     !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`);
-  const featured = dbFeatured.filter(visible).slice(0, 10);
-  const arrivals = dbArrivals.filter(visible).slice(0, 8);
+  const featured = catalogFeatured.filter(visible).slice(0, 10);
+  const arrivals = catalogArrivals.filter(visible).slice(0, 8);
   const toCard = (product: (typeof featured)[number]): CatalogProduct => ({
     name: product.name,
     slug: product.slug,

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { CatalogListing } from "@/components/CatalogListing";
 import { isBlocked } from "@/lib/blocked";
-import { filterActivePublished, filterAndSortCatalog, hasVisiblePrice, paginateCatalog, type CatalogSort } from "@/lib/catalog";
+import { filterAndSortCatalog, hasVisiblePrice, paginateCatalog, type CatalogSort } from "@/lib/catalog";
 import { getPricePresentation } from "@/lib/currency";
 import { safeDatabaseQuery } from "@/lib/db-safe";
 import { getCatalogProducts, getPublicCategoriesWithCounts, getPublicPriceSetting } from "@/lib/public-data";
+import { getStaticCategories, getStaticProducts } from "@/lib/catalog-fallback";
 
 export const metadata: Metadata = {
   title: "Pharmaceutical product catalogue",
@@ -31,13 +32,17 @@ export default async function Shop({ searchParams }: Props) {
   const [allRows, categories, globalPriceSwitch] = await Promise.all([
     safeDatabaseQuery(() => getCatalogProducts(), []),
     safeDatabaseQuery(() => getPublicCategoriesWithCounts(), []),
-    safeDatabaseQuery(() => getPublicPriceSetting(), false),
+    safeDatabaseQuery(() => getPublicPriceSetting(), true),
   ]);
-  const safeRows = filterActivePublished(allRows).filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)).map((product) => ({
+  // The bundled, reviewed catalogue keeps the public shop useful during an
+  // empty or unavailable database. All entries still pass the shared filter.
+  const rows = allRows.length ? allRows : getStaticProducts();
+  const safeRows = rows.filter((product) => product.published && product.status === "active").filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)).map((product) => ({
     ...product,
     priceInr: hasVisiblePrice(globalPriceSwitch, product.showPrice, product.priceInr) ? product.priceInr : null,
   }));
-  const categoryOptions = categories.map((category) => ({ ...category, _count: { products: safeRows.filter((product) => product.category.slug === category.slug).length } }));
+  const visibleCategories = categories.length ? categories : getStaticCategories();
+  const categoryOptions = visibleCategories.map((category) => ({ ...category, _count: { products: safeRows.filter((product) => product.category.slug === category.slug).length } }));
   const matched = filterAndSortCatalog(safeRows, {
     q: filters.q, category: filters.cat, form: filters.form, rx: filters.rx as "yes" | "no" | "",
     ...(filters.min ? { minPrice: Number(filters.min) } : {}), ...(filters.max ? { maxPrice: Number(filters.max) } : {}), sort: filters.sort,
@@ -49,7 +54,7 @@ export default async function Shop({ searchParams }: Props) {
     ...product,
     price: getPricePresentation({ globalEnabled: globalPriceSwitch, productEnabled: product.showPrice, priceInr: product.priceInr, priceUnit: product.priceUnit }),
   })));
-  const forms = [...new Set(allRows.map((product) => product.form?.trim()).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b));
+  const forms = [...new Set(rows.map((product) => product.form?.trim()).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b));
 
   return <main id="main-content">
     <section className="page-hero"><div className="container"><span className="eyebrow">For licensed trade buyers</span><h1>Explore the catalogue</h1><p>Product specifications and availability are confirmed with professional buyers. Indicative prices are for reference; final quotes are confirmed in INR.</p></div></section>

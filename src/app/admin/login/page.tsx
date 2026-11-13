@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { ShieldCheck, Boxes, ClipboardList, ChartNoAxesColumnIncreasing } from "lucide-react";
 import { AdminLoginForm } from "./AdminLoginForm";
+import { googleOAuthConfig } from "@/lib/google-admin-auth";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
   const nextPath = Array.isArray(params.next) ? params.next[0] : params.next;
   const signedOut = (Array.isArray(params.signedOut) ? params.signedOut[0] : params.signedOut) === "1";
   const googleError = (Array.isArray(params.google) ? params.google[0] : params.google) === "failed" || (Array.isArray(params.google) ? params.google[0] : params.google) === "unavailable";
-  const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI && (process.env.SESSION_SECRET?.length ?? 0) >= 32);
+  const googleEnabled = Boolean(googleOAuthConfig() && (process.env.SESSION_SECRET?.length ?? 0) >= 32);
 
   return <main className="admin-login-page">
     <div className="admin-login-orbit admin-login-orbit-one" aria-hidden="true"/>
@@ -29,10 +30,10 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
         <div className="admin-login-heading">
           <span className="admin-login-kicker"><ShieldCheck size={15} aria-hidden="true"/> Authorized access</span>
           <h1 id="admin-login-title">Welcome back</h1>
-          <p>Sign in to manage trade enquiries and catalogue operations.</p>
+          <p>Use your authorized Google account to manage trade enquiries and catalogue operations.</p>
         </div>
         <AdminLoginForm nextPath={nextPath ?? "/admin"} signedOut={signedOut} googleEnabled={googleEnabled} googleError={googleError}/>
-        <div className="admin-login-privacy"><span className="admin-login-lock"><ShieldCheck size={16} aria-hidden="true"/></span><span>Your sign-in is protected with a secure session cookie.</span></div>
+        <div className="admin-login-privacy"><span className="admin-login-lock"><ShieldCheck size={16} aria-hidden="true"/></span><span>Only Google accounts on the authorized admin email list can sign in.</span></div>
       </div>
 
       <aside className="admin-login-brand-panel" aria-label="Ashutosh Pharma administration workspace">

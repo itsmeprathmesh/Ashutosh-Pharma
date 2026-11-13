@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 
-export type CatalogCategoryOption = { id: number; name: string; slug: string; _count: { products: number } };
+export type CatalogCategoryOption = { id: number | string; name: string; slug: string; _count: { products: number } };
 
 export function CatalogFilterPanel({
   pathname,

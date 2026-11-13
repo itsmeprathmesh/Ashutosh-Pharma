@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isBlocked } from "@/lib/blocked";
 import { safeDatabaseQuery } from "@/lib/db-safe";
+import { getStaticProducts } from "@/lib/catalog-fallback";
 import { z } from "zod";
 
 export async function GET(request: Request) {
@@ -23,8 +24,13 @@ export async function GET(request: Request) {
     },
     select: { name: true, generic: true, description: true, slug: true, imageUrl: true, rx: true, category: { select: { name: true } } }, take: 8, orderBy: { name: "asc" },
   }), []);
+  const publicProductCount = await safeDatabaseQuery(() => db.product.count({ where: { published: true, status: "active" } }), 0);
+  const sourceProducts = publicProductCount === 0 ? getStaticProducts().filter((product) =>
+    `${product.name} ${product.generic ?? ""} ${product.description}`.toLocaleLowerCase("en-IN").includes(q.toLocaleLowerCase("en-IN")) &&
+    (!category || product.category.slug === category),
+  ).slice(0, 8) : dbProducts;
   return NextResponse.json(
-    { products: dbProducts.filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)).map(({ name, slug, imageUrl, rx, category }) => ({ name, slug, imageUrl, rx, category })) },
+    { products: sourceProducts.filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)).map(({ name, slug, imageUrl, rx, category }) => ({ name, slug, imageUrl, rx, category })) },
     { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },
   );
 }

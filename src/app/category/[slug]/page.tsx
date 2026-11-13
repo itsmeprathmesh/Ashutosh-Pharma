@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CatalogListing } from "@/components/CatalogListing";
 import { isBlocked } from "@/lib/blocked";
-import { filterActivePublished, filterAndSortCatalog, hasVisiblePrice, paginateCatalog, type CatalogSort } from "@/lib/catalog";
+import { filterAndSortCatalog, hasVisiblePrice, paginateCatalog, type CatalogSort } from "@/lib/catalog";
 import { getPricePresentation } from "@/lib/currency";
 import { safeDatabaseQuery } from "@/lib/db-safe";
 import { getCatalogProducts, getPublicCategoriesWithCounts, getPublicCategory, getPublicPriceSetting } from "@/lib/public-data";
+import { getStaticCategories, getStaticProducts } from "@/lib/catalog-fallback";
 
 export const dynamic = "force-dynamic";
 type PageProps = {
@@ -15,7 +16,7 @@ type PageProps = {
 
 export default async function CategoryPage({ params, searchParams }: PageProps) {
   const [{ slug }, search] = await Promise.all([params, searchParams]);
-  const category = await safeDatabaseQuery(() => getPublicCategory(slug), null);
+  const category = (await safeDatabaseQuery(() => getPublicCategory(slug), null)) ?? getStaticCategories().find((item) => item.slug === slug) ?? null;
   if (!category) notFound();
   const filters = {
     q: (search.q ?? "").trim().slice(0, 100), cat: slug, form: (search.form ?? "").slice(0, 80),
@@ -29,16 +30,17 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const [catalogRows, categories, globalPriceSwitch] = await Promise.all([
     safeDatabaseQuery(() => getCatalogProducts(), []),
     safeDatabaseQuery(() => getPublicCategoriesWithCounts(), []),
-    safeDatabaseQuery(() => getPublicPriceSetting(), false),
+    safeDatabaseQuery(() => getPublicPriceSetting(), true),
   ]);
-  const publicRows = filterActivePublished(catalogRows);
+  const publicRows = (catalogRows.length ? catalogRows : getStaticProducts()).filter((product) => product.published && product.status === "active");
   const allRows = publicRows.filter((product) => product.category.slug === slug);
   const safeRows = allRows.filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`)).map((product) => ({
     ...product,
     priceInr: hasVisiblePrice(globalPriceSwitch, product.showPrice, product.priceInr) ? product.priceInr : null,
   }));
   const visibleCatalogRows = publicRows.filter((product) => !isBlocked(`${product.name} ${product.generic ?? ""} ${product.description}`));
-  const categoryOptions = categories.map((item) => ({ ...item, _count: { products: visibleCatalogRows.filter((product) => product.category.slug === item.slug).length } }));
+  const categorySource = categories.length ? categories : getStaticCategories();
+  const categoryOptions = categorySource.map((item) => ({ ...item, _count: { products: visibleCatalogRows.filter((product) => product.category.slug === item.slug).length } }));
   const matched = filterAndSortCatalog(safeRows, {
     q: filters.q, form: filters.form, rx: filters.rx as "yes" | "no" | "",
     ...(filters.min ? { minPrice: Number(filters.min) } : {}), ...(filters.max ? { maxPrice: Number(filters.max) } : {}), sort: filters.sort,

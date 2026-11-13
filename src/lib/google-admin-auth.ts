@@ -34,10 +34,14 @@ export function googleOAuthConfig() {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
   const redirectUri = process.env.GOOGLE_REDIRECT_URI?.trim();
   if (!clientId || !clientSecret || !redirectUri) return null;
-  const callback = new URL(redirectUri);
-  if (process.env.NODE_ENV === "production" && callback.protocol !== "https:") return null;
-  if (callback.pathname !== "/api/admin/auth/google/callback") return null;
-  return { clientId, clientSecret, redirectUri: callback.toString() };
+  try {
+    const callback = new URL(redirectUri);
+    if (process.env.NODE_ENV === "production" && callback.protocol !== "https:") return null;
+    if (callback.pathname !== "/api/admin/auth/google/callback") return null;
+    return { clientId, clientSecret, redirectUri: callback.toString() };
+  } catch {
+    return null;
+  }
 }
 
 export function safeAdminNext(value?: string) {
